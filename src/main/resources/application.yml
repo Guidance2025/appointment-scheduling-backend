@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: appointment-scheduling-api
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:orcl
+    username: guidance
+    password: Changeme0
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
