@@ -5,7 +5,6 @@ import org.rocs.asa.dto.appointment.create.appointment.request.CreateAppointment
 import org.rocs.asa.dto.appointment.create.appointment.response.AppointmentResponseDto;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * {@code AppointmentService} is an interface of the Appointment Service
