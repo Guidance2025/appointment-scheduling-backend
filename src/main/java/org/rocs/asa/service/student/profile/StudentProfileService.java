@@ -1,8 +1,8 @@
-package org.rocs.asa.service.student;
+package org.rocs.asa.service.student.profile;
 
-import org.rocs.asa.domain.person.student.Student;
+import org.rocs.asa.domain.student.Student;
 
-public interface StudentService {
+public interface StudentProfileService {
     /**
      * Find a student by their student number
      *
@@ -10,5 +10,10 @@ public interface StudentService {
      * @return Student contains student information
      */
     Student findStudentByStudentNumber(String studentNumber);
+
+
+    Student saveStudentProfile(Student student);
+
+
 
 }

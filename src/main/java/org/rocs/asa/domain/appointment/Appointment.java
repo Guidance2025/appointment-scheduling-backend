@@ -3,7 +3,7 @@ package org.rocs.asa.domain.appointment;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
-import org.rocs.asa.domain.person.student.Student;
+import org.rocs.asa.domain.student.Student;
 
 import java.time.LocalDateTime;
 
@@ -22,9 +22,11 @@ public class Appointment {
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "employee_number")
-    private GuidanceStaff employee;
+    private GuidanceStaff guidanceStaff;
 
     private LocalDateTime scheduledDate;
+
+    private LocalDateTime endDate;
 
     private LocalDateTime dateCreated;
 

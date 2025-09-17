@@ -18,10 +18,10 @@ public class AppointmentResponseDto {
 
 public AppointmentResponseDto(Appointment appointment) {
         this.appointmentId = appointment.getAppointmentId();
-        this.studentName = appointment.getStudent().getFirstName()
-                + " " + appointment.getStudent().getLastName();
-        this.employeeName = appointment.getEmployee().getPerson().getFirstName()
-                + " " + appointment.getEmployee().getPerson().getLastName();
+        this.studentName = appointment.getStudent().getPerson().getFirstName()
+                + " " + appointment.getStudent().getPerson().getLastName();
+        this.employeeName = appointment.getGuidanceStaff().getPerson().getFirstName()
+                + " " + appointment.getGuidanceStaff().getPerson().getLastName();
         this.scheduledDate = appointment.getScheduledDate();
         this.appointmentType = appointment.getAppointmentType();
         this.status = appointment.getStatus();

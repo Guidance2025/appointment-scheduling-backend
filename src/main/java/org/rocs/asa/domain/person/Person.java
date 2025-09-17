@@ -1,23 +1,20 @@
 package org.rocs.asa.domain.person;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import org.springframework.lang.NonNull;
 
 import java.util.Date;
 
 @Entity
 @Data
 @Table(name = "tbl_person")
-@Inheritance(strategy = InheritanceType.JOINED)
 public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "Firstname is required")
     @Column(nullable = false)
     private String firstName;
 
@@ -35,7 +32,7 @@ public class Person {
 
     @Column(nullable = false)
     private String gender;
-
+    @NotBlank(message = "Email is required")
     @Column(nullable = false, unique = true)
     private String email;
 

@@ -2,7 +2,7 @@ package org.rocs.asa.service.appointment.impl;
 
 import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
-import org.rocs.asa.domain.person.student.Student;
+import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.dto.appointment.create.appointment.request.CreateAppointmentRequestDto;
 import org.rocs.asa.dto.appointment.create.appointment.response.AppointmentResponseDto;
 import org.rocs.asa.exception.domain.AppointmentNotFoundException;
@@ -52,7 +52,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Appointment appointment = new Appointment();
         appointment.setStudent(student);
-        appointment.setEmployee(guidanceStaff);
+        appointment.setGuidanceStaff(guidanceStaff);
         appointment.setScheduledDate(dto.getScheduledDate());
         appointment.setAppointmentType(dto.getAppointmentType());
         appointment.setStatus("PENDING");
@@ -84,6 +84,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
         try {
             Appointment appointment = appointmentRepository.findById(appointmentId).orElseThrow(() -> {
+
                 LOGGER.error("Appointment not found with ID: {}", appointmentId);
                 return new AppointmentNotFoundException(
                         "Appointment not found with ID: " + appointmentId);
