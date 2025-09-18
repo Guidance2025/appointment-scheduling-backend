@@ -2,8 +2,6 @@ package org.rocs.asa.controller.appointment;
 
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.appointment.Appointment;
-import org.rocs.asa.dto.appointment.create.appointment.request.CreateAppointmentRequestDto;
-import org.rocs.asa.dto.appointment.create.appointment.response.AppointmentResponseDto;
 import org.rocs.asa.service.appointment.AppointmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +49,9 @@ public class AppointmentController {
      * @return ResponseEntity containing the created AppointmentResponseDto and HTTP status 200 OK
      */
     @PostMapping("/create-appointment")
-    public ResponseEntity<AppointmentResponseDto> createAppointment(@Valid @RequestBody CreateAppointmentRequestDto requestDto) {
-        AppointmentResponseDto appointment = appointmentService.createAppointment(requestDto);
-        return ResponseEntity.ok(appointment);
+    public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody Appointment requestDto) {
+        Appointment appointment = appointmentService.createAppointment(requestDto);
+        return new ResponseEntity<>(appointment,HttpStatus.OK);
     }
     /**
      * Retrieves appointments filtered by status.

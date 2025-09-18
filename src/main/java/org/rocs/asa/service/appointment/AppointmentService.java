@@ -1,8 +1,6 @@
 package org.rocs.asa.service.appointment;
 
 import org.rocs.asa.domain.appointment.Appointment;
-import org.rocs.asa.dto.appointment.create.appointment.request.CreateAppointmentRequestDto;
-import org.rocs.asa.dto.appointment.create.appointment.response.AppointmentResponseDto;
 
 import java.util.List;
 
@@ -11,7 +9,7 @@ import java.util.List;
  * */
 public interface AppointmentService {
 
-    AppointmentResponseDto createAppointment(CreateAppointmentRequestDto dto);
+    Appointment createAppointment(Appointment appointment);
 
     List<Appointment> getAllAppointments();
 
