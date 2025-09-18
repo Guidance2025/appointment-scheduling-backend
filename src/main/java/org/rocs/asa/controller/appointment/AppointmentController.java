@@ -2,8 +2,6 @@ package org.rocs.asa.controller.appointment;
 
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.appointment.Appointment;
-import org.rocs.asa.dto.appointment.create.appointment.request.CreateAppointmentRequestDto;
-import org.rocs.asa.dto.appointment.create.appointment.response.AppointmentResponseDto;
 import org.rocs.asa.service.appointment.AppointmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
