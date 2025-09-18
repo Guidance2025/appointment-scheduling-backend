@@ -1,5 +1,6 @@
 package org.rocs.asa.service.student.profile.impl;
 
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.section.Section;
@@ -39,7 +40,8 @@ public class StudentProfileServiceImpl implements StudentProfileService {
     }
 
     @Override
-    public Student saveStudentProfile(@Valid Student student) {
+    @Transactional
+    public Student saveStudentProfile( Student student) {
         boolean exists = studentRepository.existsByStudentNumber(student.getStudentNumber());
         if(exists) {
             LOGGER.error("Student Number Already Exist {}", student.getStudentNumber());

@@ -1,12 +1,8 @@
 package org.rocs.asa.service.appointment.impl;
 
 import org.rocs.asa.domain.appointment.Appointment;
-import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.student.Student;
-import org.rocs.asa.dto.appointment.create.appointment.request.CreateAppointmentRequestDto;
-import org.rocs.asa.dto.appointment.create.appointment.response.AppointmentResponseDto;
 import org.rocs.asa.exception.domain.AppointmentNotFoundException;
-import org.rocs.asa.exception.domain.GuidanceStaffNotFoundException;
 import org.rocs.asa.exception.domain.StudentNotFoundException;
 import org.rocs.asa.repository.appointment.AppointmentRepository;
 import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
@@ -17,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 /**
  * Service for managing appointment operations between students and guidance staff.
@@ -39,30 +34,30 @@ public class AppointmentServiceImpl implements AppointmentService {
     /**
      * Creates a new appointment with PENDING status.
      *
-     * @param dto appointment details
+     * @param appointment appointment details
      * @return created appointment data
      */
     @Override
-    public AppointmentResponseDto createAppointment(CreateAppointmentRequestDto dto) {
+    public Appointment createAppointment(Appointment appointment) {
 
-        Student student = studentRepository.findById(dto.getStudentId())
-                .orElseThrow(() -> new StudentNotFoundException("Student not found"));
-        GuidanceStaff guidanceStaff = guidanceStaffRepository.findById(dto.getEmployeeNumber())
-                .orElseThrow(() -> new GuidanceStaffNotFoundException("Guidance Staff not found"));
+        Appointment newAppointment = new Appointment();
 
-        Appointment appointment = new Appointment();
-        appointment.setStudent(student);
-        appointment.setGuidanceStaff(guidanceStaff);
-        appointment.setScheduledDate(dto.getScheduledDate());
-        appointment.setAppointmentType(dto.getAppointmentType());
-        appointment.setStatus("PENDING");
-        appointment.setNotes(dto.getNotes());
-        appointment.setDateCreated(LocalDateTime.now());
+        Student student = studentRepository.findStudentByStudentNumber(appointment.getStudent().getStudentNumber());
+        LOGGER.error("Student Not Found");
+        if(student == null ) {throw new StudentNotFoundException("Student Not Found");}
 
-        Appointment saveAppointment = appointmentRepository.save(appointment);
+        newAppointment.setStudent(student);
+        newAppointment.setAppointmentType(appointment.getAppointmentType());
+        newAppointment.setStatus("PENDING");
+        newAppointment.setScheduledDate(appointment.getScheduledDate());
+        newAppointment.setEndDate(appointment.getEndDate());
+        newAppointment.setNotes(appointment.getNotes());
+
+        Appointment saveAppointment =  appointmentRepository.save(newAppointment);
 
         LOGGER.info("Appointment created successfully with appointmentId ={}", saveAppointment.getAppointmentId());
-        return new AppointmentResponseDto(saveAppointment);
+
+        return newAppointment;
     }
     /**
      * Looks up a single appointment using its ID number.
