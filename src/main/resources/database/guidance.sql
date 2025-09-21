@@ -13,6 +13,7 @@ grant connect to guidance;
 alter session set current_schema = guidance;
 
 drop table tbl_person cascade constraints;
+drop table tbl_user_device_token cascade constraints;
 drop table tbl_login cascade constraints;
 drop table tbl_section cascade constraints;
 drop table tbl_category cascade constraints;
@@ -26,6 +27,7 @@ drop table tbl_exit_interview cascade constraints;
 drop table tbl_anonymous_response cascade constraints;
 drop table tbl_posts cascade constraints;
 drop table tbl_self_assessment_response cascade constraints;
+drop table tbl_notification cascade constraints;
 
 create table tbl_person (
     id number(20,0) generated as identity
@@ -40,6 +42,16 @@ create table tbl_person (
     address varchar2(255 char),
     contact_number varchar2(11),
     primary key (id));
+
+create table tbl_user_device_token (
+    token_id number(20,0) generated as identity,
+    user_id number(20,0),
+    device_type varchar2(64 char),
+    fcm_token varchar2(64 char),
+    create_at timestamp(6),
+    updated_at timestamp(6),
+    primary key (token_id)
+);
 
 create table tbl_login (
     login_id number(20,0) generated as identity
@@ -104,6 +116,7 @@ create table tbl_appointment (
     employee_number number(20,0),
     scheduled_date timestamp(6),
     date_created timestamp(6),
+    end_date timestamp(6),
     appointment_type varchar2(64 char),
     status varchar2(32 char),
     notes varchar2(128 char),
@@ -163,6 +176,21 @@ create table tbl_self_assessment (
     response_text varchar2(128 char),
     response_date timestamp(6),
     primary key (assessment_response_id));
+
+create table tbl_notification (
+    notification_id number(20,0) generated as identity,
+    user_id number(20,0),
+    appointment_id number(20,0),
+    message varchar2(255),
+    action_type varchar2(64 char),
+    is_read varchar2(64 char),
+    created_at timestamp(6),
+    updated_at timestamp(6),
+    primary key (notification_id));
+
+alter table tbl_user_device_token
+    add constraint FK_TBL_PERSON_USER_ID
+    foreign key (user_id) references tbl_login;
 
 alter table tbl_login
     add constraint FK_TBL_LOGIN_PERSON_ID
@@ -239,6 +267,14 @@ alter table tbl_self_assessment
 alter table tbl_self_assessment
     add constraint FK_TBL_SELF_ASSESSMENT_QUESTION_ID
     foreign key (question_id) references tbl_questions;
+
+alter table tbl_notification
+    add constraint FK_TBL_NOTIFICATION_USER_ID
+    foreign key (user_id) references tbl_login;
+
+alter table tbl_notification
+    add constraint FK_TBL_NOTIFICATION_APPOINTMENT_ID
+    foreign key (appointment_id) references tbl_appointment;
 
 --TEST DATA
 -- INSERT PERSON TABLE
