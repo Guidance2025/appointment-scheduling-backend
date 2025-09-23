@@ -12,3 +12,8 @@ spring:
         ddl-auto: update
 jwt:
   secret : 'thebigbrownfoxjumpsoverthelazydog'
+
+firebase:
+  project-id: appointment-notification-cc54d
+  service-account-file: firebase-service-account.json
+

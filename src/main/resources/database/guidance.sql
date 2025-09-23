@@ -26,6 +26,8 @@ drop table tbl_exit_interview cascade constraints;
 drop table tbl_anonymous_response cascade constraints;
 drop table tbl_posts cascade constraints;
 drop table tbl_self_assessment_response cascade constraints;
+drop table tbl_notification cascade constraints;
+drop table tbl_user_device_token cascade constraints;
 
 create table tbl_person (
     id number(20,0) generated as identity
@@ -164,10 +166,37 @@ create table tbl_self_assessment (
     response_date timestamp(6),
     primary key (assessment_response_id));
 
+
+    create table tbl_user_device_token (
+        token_id number(20,0) generated as identity
+            constraint TBL_USER_DEVICE_TOKEN_ID_NOT_NULL not null,
+        user_id number(20,0),
+        device_type varchar2(32 char),
+        fcm_token varchar2(255 char),
+        created_at timestamp(6) default current_timestamp,
+        updated_at timestamp(6),
+        primary key (token_id)
+    );
+    create table tbl_notification (
+        notification_id number(20,0) generated as identity
+            constraint TBL_NOTIFICATION_ID_NOT_NULL not null,
+        user_id number(20,0),
+        appointment_id number(20,0),
+        message varchar2(500 char),
+        action_type varchar2(64 char),
+        is_read number(1,0),
+        created_at timestamp(6) default current_timestamp,
+        updated_at timestamp(6),
+        primary key (notification_id)
+    );
+
 alter table tbl_login
     add constraint FK_TBL_LOGIN_PERSON_ID
     foreign key (person_id) references tbl_person;
 
+alter table tbl_user_device_token
+    add constraint FK_TBL_USER_DEVICE_TOKEN_LOGIN
+    foreign key (user_id) references tbl_login(login_id);
 alter table tbl_guidance_staff
     add constraint FK_TBL_EMPLOYEE_NUMBER_PERSON_ID
     foreign key (person_id) references tbl_person;
@@ -191,6 +220,14 @@ alter table tbl_counseling_session
 alter table tbl_appointment
      add constraint FK_TBL_APPOINTMENT_STUDENT_NUMBER
      foreign key (student_id) references tbl_student;
+
+  alter table tbl_notification
+    add constraint FK_TBL_NOTIFICATION_LOGIN
+    foreign key (user_id) references tbl_login(login_id);
+
+  alter table tbl_notification
+  add constraint FK_TBL_NOTIFICATION_APPOINTMENT
+ foreign key (appointment_id) references tbl_appointment(appointment_id);
 
 alter table tbl_appointment
     add constraint FK_TBL_APPOINTMENT_EMPLOYEE_NUMBER
@@ -384,5 +421,28 @@ insert into tbl_self_assessment (student_id, question_id, response_text, respons
 values (3, 4, 'I feel overwhelmed but coping.', to_timestamp('2025-08-01 08:00:00.00', 'yyyy-mm-dd hh24:mi:ss:ff'));
 insert into tbl_self_assessment (student_id, question_id, response_text, response_date)
 values (4, 4, 'Yes.', to_timestamp('2025-08-02 08:00:00.00', 'yyyy-mm-dd hh24:mi:ss:ff'));
+
+
+insert into tbl_user_device_token (user_id, device_type, fcm_token)
+values (1, 'MOBILE', 'fcm_token_anna_mobile_123');
+
+insert into tbl_user_device_token (user_id, device_type, fcm_token)
+values (2, 'WEB', 'fcm_token_john_web_456');
+
+insert into tbl_user_device_token (user_id, device_type, fcm_token)
+values (6, 'MOBILE', 'fcm_token_carlos_mobile_789');
+
+
+insert into tbl_notification (user_id, appointment_id, message, action_type, is_read)
+values (2, 1, 'You have a scheduled appointment on 2025-08-15.', 'INFO', '0');
+
+-- Ella gets notified about her exit interview
+insert into tbl_notification (user_id, appointment_id, message, action_type, is_read)
+values (5, 2, 'Your exit interview is scheduled for 2025-08-20.', 'INFO', '1');
+
+-- Staff Carlos gets notified when John booked an appointment
+insert into tbl_notification (user_id, appointment_id, message, action_type, is_read)
+values (6, 1, 'Student John Cruz has booked an appointment.', 'ALERT', 1);
+
 
 commit;

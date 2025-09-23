@@ -1,7 +1,9 @@
 package org.rocs.asa.controller.user;
 
+import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.domain.user.principal.UserPrincipal;
+import org.rocs.asa.service.notication.NotificationService;
 import org.rocs.asa.service.user.UserService;
 import org.rocs.asa.utils.security.jwt.token.provider.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.rocs.asa.utils.security.constant.SecurityConstant.JWT_TOKEN_HEADER;
 
@@ -25,6 +30,7 @@ public class UserController {
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
+    private  NotificationService notificationService;
 
     /**
      * Constructs a new {@code UserController} with the required dependencies.
@@ -37,10 +43,11 @@ public class UserController {
      * @param jwtTokenProvider the provider utility for generating and validating JWT used in secure authentication
      */
     @Autowired
-    public UserController(UserService userService, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
+    public UserController(UserService userService, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, NotificationService notificationService) {
         this.userService = userService;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -50,13 +57,17 @@ public class UserController {
      * @return ResponseEntity containing the message, JWT Header and the Http Status
      * */
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User user){
+    public ResponseEntity<Map<String, Object>> login(@RequestBody User user){
         authUserLogin(user.getUsername(), user.getPassword());
         User loginUser = this.userService.findUserByUsername(user.getUsername());
         UserPrincipal userPrincipal = new UserPrincipal(loginUser);
         HttpHeaders jwtHeader = provideJwtHeader(userPrincipal);
-        return new ResponseEntity<>("Login success",jwtHeader, HttpStatus.OK);
+        Map<String,Object> response = new HashMap<>();
+        response.put("message","Login Success");
+        response.put("userId",loginUser.getUserId());
+        return new ResponseEntity<>(response,jwtHeader, HttpStatus.OK);
     }
+
     /**
      * {@code register} used to handle the registration request, this accepts the object
      * @param user that contains the credential provided by the user

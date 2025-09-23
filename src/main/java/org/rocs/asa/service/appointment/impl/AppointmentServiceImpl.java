@@ -8,6 +8,8 @@ import org.rocs.asa.repository.appointment.AppointmentRepository;
 import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.service.appointment.AppointmentService;
+import org.rocs.asa.service.device.token.DeviceTokenService;
+import org.rocs.asa.service.notication.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     private AppointmentRepository appointmentRepository;
     private StudentRepository studentRepository;
     private GuidanceStaffRepository guidanceStaffRepository;
+    private DeviceTokenService deviceTokenService;
+    private NotificationService notificationService;
 
     @Autowired
     public AppointmentServiceImpl(AppointmentRepository appointmentRepository, StudentRepository studentRepository, GuidanceStaffRepository guidanceStaffRepository) {

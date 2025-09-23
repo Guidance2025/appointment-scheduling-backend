@@ -2,10 +2,13 @@ package org.rocs.asa.domain.user;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.rocs.asa.domain.device.token.DeviceToken;
+import org.rocs.asa.domain.notification.Notification;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.utils.converter.StringListConverter;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -23,10 +26,9 @@ public class User implements Serializable {
 
     private String username;
     private String password;
-    //
     @Column(name = "user_id" ,length = 10)
     private String userId;
-    //
+
     private Date joinDate;
     private Date lastLoginDate;
     private String role;
@@ -37,10 +39,9 @@ public class User implements Serializable {
     private boolean isLocked;
     private boolean isActive;
 
-
-
-
-
-
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private DeviceToken deviceTokens;
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private  Notification notification;
 
 }
