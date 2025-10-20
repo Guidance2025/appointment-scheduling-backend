@@ -50,8 +50,7 @@ create table tbl_user_device_token (
     fcm_token varchar2(64 char),
     create_at timestamp(6),
     updated_at timestamp(6),
-    primary key (token_id)
-);
+    primary key (token_id));
 
 create table tbl_login (
     login_id number(20,0) generated as identity
@@ -143,9 +142,9 @@ create table tbl_questions (
 create table tbl_exit_interview (
     interview_id number(20,0) generated as identity
         constraint TBL_INTERVIEW_ID_NOT_NULL not null,
-    question_id number(20,0),
-    student_id number(20,0),
-    responses varchar2(500 char),
+    student_id number (20,0),
+    question_id number (20,0),
+    response_text varchar2(255 char),
     submitted_date date,
     primary key (interview_id));
 
@@ -153,7 +152,8 @@ create table tbl_anonymous_response (
     response_id number(20,0) generated as identity
         constraint TBL_RESPONSE_ID_NOT_NULL not null,
     question_id number(20,0),
-    resposne_text varchar2(255 char),
+    person_id number (20,0),
+    response_text varchar2(255 char),
     response_date date,
     primary key (response_id));
 
@@ -171,9 +171,9 @@ create table tbl_posts (
 create table tbl_self_assessment (
     assessment_response_id number(20,0) generated as identity
         constraint TBL_ASSESSMENT_RESPONSE_ID_NOT_NULL not null,
-    student_id number(20,0),
-    question_id number(20,0),
-    response_text varchar2(128 char),
+    student_id number (20,0),
+    question_id number (20,0),
+    response_text varchar2(255 char),
     response_date timestamp(6),
     primary key (assessment_response_id));
 
@@ -237,6 +237,10 @@ alter table tbl_questions
     foreign key (employee_number) references tbl_guidance_staff;
 
 alter table tbl_exit_interview
+    add constraint FK_TBL_EXIT_INTERVIEW_STUDENT_ID
+    foreign key (student_id) references tbl_student;
+
+alter table tbl_exit_interview
     add constraint FK_TBL_EXIT_INTERVIEW_QUESTION_ID
     foreign key (question_id) references tbl_questions;
 
@@ -261,7 +265,7 @@ alter table tbl_posts
     foreign key (question_id) references tbl_questions;
 
 alter table tbl_self_assessment
-    add constraint FK_TBL_SELF_ASSESSMENT_STUDENT_NUMBER
+    add constraint FK_TBL_SELF_ASSESSMENT_STUDENT_ID
     foreign key (student_id) references tbl_student;
 
 alter table tbl_self_assessment
@@ -392,21 +396,21 @@ insert into tbl_questions (category_id, employee_number, question_text, date_cre
 values (4, 3, 'Are you confident in your potential?', to_date('2025-07-03','YYYY-MM-DD'));
 
 --INSERT EXIT INTERVIEW
-insert into tbl_exit_interview (question_id, student_id, responses, submitted_date)
+insert into tbl_exit_interview (question_id, student_id, response_text, submitted_date)
 values (1, 2, 'yes', to_date('2025-08-01','YYYY-MM-DD'));
-insert into tbl_exit_interview (question_id, student_id, responses, submitted_date)
+insert into tbl_exit_interview (question_id, student_id, response_text, submitted_date)
 values(1, 5, 'no', to_date('2025-08-02','YYYY-MM-DD'));
-insert into tbl_exit_interview (question_id, student_id, responses, submitted_date)
+insert into tbl_exit_interview (question_id, student_id, response_text, submitted_date)
 values (3, 2, 'inline with the BSIT', to_date('2025-08-01','YYYY-MM-DD'));
-insert into tbl_exit_interview (question_id, student_id, responses, submitted_date)
+insert into tbl_exit_interview (question_id, student_id, response_text, submitted_date)
 values(3, 5, 'inline with the BA course', to_date('2025-08-02','YYYY-MM-DD'));
 
 --INSERT ANONYMOUS RESPONSE
-insert into tbl_anonymous_response (question_id, resposne_text, response_date)
+insert into tbl_anonymous_response (question_id, response_text, response_date)
 values (2, 'as of now, im not ok,  i just want to rest for a long time.', to_date('2025-08-03','YYYY-MM-DD'));
-insert into tbl_anonymous_response (question_id, resposne_text, response_date)
+insert into tbl_anonymous_response (question_id, response_text, response_date)
 values (2, 'i feel ok and confident', to_date('2025-08-03','YYYY-MM-DD'));
-insert into tbl_anonymous_response (question_id, resposne_text, response_date)
+insert into tbl_anonymous_response (question_id, response_text, response_date)
 values (2, 'super tired.', to_date('2025-08-03','YYYY-MM-DD'));
 
 --INSERT POSTS TABLE
