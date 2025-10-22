@@ -4,6 +4,8 @@ import com.auth0.jwt.exceptions.TokenExpiredException;
 import jakarta.persistence.NoResultException;
 import org.rocs.asa.domain.http.response.HttpResponse;
 import org.rocs.asa.exception.domain.EmailNotFoundException;
+import org.rocs.asa.exception.domain.EmptyFieldException;  // Added import
+import org.rocs.asa.exception.domain.QuestionNotFoundException;  // Added import
 import org.rocs.asa.exception.domain.UserNotFoundException;
 import org.rocs.asa.exception.domain.UsernameExistsException;
 import org.springframework.boot.web.servlet.error.ErrorController;
@@ -70,9 +72,20 @@ public class ExceptionHandling implements ErrorController {
         return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
     @ExceptionHandler(UsernameExistsException.class)
-    public ResponseEntity<HttpResponse> usernameExistException(NoResultException exception){
+    public ResponseEntity<HttpResponse> usernameExistException(UsernameExistsException exception){  // Fixed parameter type
         return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
+
+    @ExceptionHandler(EmptyFieldException.class)
+    public ResponseEntity<HttpResponse> emptyFieldException(EmptyFieldException exception){
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(QuestionNotFoundException.class)
+    public ResponseEntity<HttpResponse> questionNotFoundException(QuestionNotFoundException exception){
+        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+
     private ResponseEntity<HttpResponse> createHttpResponse(HttpStatus status, String message){
         return new ResponseEntity<>(new HttpResponse(status.value(),status,status.getReasonPhrase().toUpperCase(), message.toUpperCase()),status);
     }

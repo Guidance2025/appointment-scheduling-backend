@@ -12,6 +12,7 @@ public class Section{
     @Column(name = "section_id")
     private Long sectionId;
 
+    @Column(name = "organization")
     private String organization;
 
     @Column(name = "cluster_name")
@@ -23,6 +24,7 @@ public class Section{
     @Column(name = "section_name")
     private String sectionName;
 
+    @Column(name = "course")
     private String course;
 
 }
