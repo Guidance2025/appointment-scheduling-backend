@@ -36,34 +36,27 @@ public class DeviceTokenServiceImpl implements DeviceTokenService {
     @Transactional
     public DeviceToken registerDeviceToken(DeviceToken deviceToken) {
 
-        // 1. Validate user information
         User user = deviceToken.getUser();
         if (user == null || user.getUserId() == null || user.getUserId().trim().isEmpty()) {
             LOGGER.error("User information is missing in Device Token");
             throw new UserIdNotFoundOnDeviceToken("User ID is missing in Device Token");
         }
 
-        // 2. Validate userId format (should be 10 digits)
         String userId = user.getUserId().trim();
         if (!userId.matches("\\d{10}")) {
             LOGGER.error("Invalid userId format: {}. Expected 10 digits.", userId);
             throw new IllegalArgumentException("Invalid user ID format");
         }
 
-        // 3. Find existing user by session userId
         User existingUser = userRepository.findByUserId(userId);
         if (existingUser == null) {
             LOGGER.info("User not found with userId: {}, cannot register device token", userId);
             throw new IllegalArgumentException("User session not found. Please login again.");
         }
 
-        // 4. Validate FCM token format
-        if (!isValidFCMToken(deviceToken.getFcmToken())) {
-            throw new IllegalArgumentException("Invalid FCM token format");
-        }
+        isValidFCMToken(deviceToken.getFcmToken());
 
         try {
-            // 5. Check if exact same token already exists for this user
             DeviceToken existingToken = deviceTokenRepository
                     .findByFcmTokenAndUser_UserId(deviceToken.getFcmToken(), existingUser.getUserId());
 
@@ -73,7 +66,6 @@ public class DeviceTokenServiceImpl implements DeviceTokenService {
                 return deviceTokenRepository.save(existingToken);
             }
 
-            // 6. Check if user has existing token for same device type
             DeviceToken userExistingToken = deviceTokenRepository
                     .findByUser_UserIdAndDeviceType(existingUser.getUserId(), deviceToken.getDeviceType());
 
@@ -84,7 +76,6 @@ public class DeviceTokenServiceImpl implements DeviceTokenService {
                 return deviceTokenRepository.save(userExistingToken);
             }
 
-            // 7. Create new device token
             deviceToken.setUser(existingUser);
             deviceToken.setCreatedAt(LocalDateTime.now());
             deviceToken.setUpdatedAt(LocalDateTime.now());
@@ -100,24 +91,16 @@ public class DeviceTokenServiceImpl implements DeviceTokenService {
         }
     }
 
-    @Override
-    public DeviceToken removeDeviceToken(Long userId, String fcmToken) {
-        return null;
-    }
 
-
-    // FCM token format validation
     private boolean isValidFCMToken(String fcmToken) {
         if (fcmToken == null || fcmToken.trim().isEmpty()) {
             return false;
         }
 
-        // FCM tokens are typically 152-163 characters long
         if (fcmToken.length() < 140 || fcmToken.length() > 200) {
             return false;
         }
 
-        // FCM tokens contain specific patterns (letters, numbers, hyphens, underscores, colons)
         return fcmToken.matches("^[a-zA-Z0-9_:-]+$");
     }
 }

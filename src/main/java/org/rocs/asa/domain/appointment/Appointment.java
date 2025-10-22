@@ -1,9 +1,11 @@
 package org.rocs.asa.domain.appointment;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.domain.user.User;
 
 import java.time.LocalDateTime;
 
@@ -16,13 +18,19 @@ public class Appointment {
     @Column(name = "appointment_id")
     private Long appointmentId;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "student_id")
     private Student student;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "employee_number")
+    @JsonIgnore
     private GuidanceStaff guidanceStaff;
+
+    @OneToOne
+    @JoinColumn(name = "login_id")
+    @JsonIgnore
+    private User user;
 
     private LocalDateTime scheduledDate;
 

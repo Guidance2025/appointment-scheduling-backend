@@ -17,3 +17,7 @@ firebase:
   project-id: appointment-notification-cc54d
   service-account-file: firebase-service-account.json
 
+server:
+  address: 0.0.0.0
+  port: 8080
+

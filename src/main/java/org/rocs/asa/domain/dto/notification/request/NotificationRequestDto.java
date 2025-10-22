@@ -4,12 +4,11 @@ import lombok.Data;
 
 import java.util.Map;
 @Data
-public class NotificationRequest {
+public class NotificationRequestDto {
     String targetUserId;
     String fcmToken;
     String title;
     String body;
     Map<String, String> data;
-
 
 }

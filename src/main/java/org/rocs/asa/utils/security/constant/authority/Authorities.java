@@ -10,7 +10,7 @@ public class Authorities {
      * */
     public static String[] GUIDANCE_AUTHORITIES = {"user:read","user:update","user:create"};
     /**
-     * Authorities for teacher
+     * Authorities for Student
      * */
     public static String[] STUDENT_AUTHORITIES = {"user:read","user:update","user:create"};
     /**

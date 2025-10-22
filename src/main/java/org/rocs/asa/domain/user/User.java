@@ -1,14 +1,15 @@
 package org.rocs.asa.domain.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.device.token.DeviceToken;
-import org.rocs.asa.domain.notification.Notification;
+import org.rocs.asa.domain.notification.Notifications;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.utils.converter.StringListConverter;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -18,7 +19,7 @@ public class User implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "login_id",nullable = false, updatable = false)
-    private Long loginId;
+    private Long id;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "person_id")
@@ -39,9 +40,10 @@ public class User implements Serializable {
     private boolean isLocked;
     private boolean isActive;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(cascade = CascadeType.ALL)
     private DeviceToken deviceTokens;
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private  Notification notification;
+    @OneToOne( cascade = CascadeType.ALL)
+    @JsonIgnore
+    private Notifications notifications;
 
 }

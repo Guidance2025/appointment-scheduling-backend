@@ -1,9 +1,11 @@
 package org.rocs.asa.controller.user;
 
-import org.rocs.asa.domain.device.token.DeviceToken;
+import jakarta.mail.MessagingException;
+import org.rocs.asa.domain.registration.Registration;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.domain.user.principal.UserPrincipal;
-import org.rocs.asa.service.notication.NotificationService;
+import org.rocs.asa.exception.domain.UserNotFoundException;
+import org.rocs.asa.service.notification.NotificationService;
 import org.rocs.asa.service.user.UserService;
 import org.rocs.asa.utils.security.jwt.token.provider.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,21 +64,18 @@ public class UserController {
         User loginUser = this.userService.findUserByUsername(user.getUsername());
         UserPrincipal userPrincipal = new UserPrincipal(loginUser);
         HttpHeaders jwtHeader = provideJwtHeader(userPrincipal);
-        Map<String,Object> response = new HashMap<>();
-        response.put("message","Login Success");
-        response.put("userId",loginUser.getUserId());
+        Map<String,Object> response = userService.buildLoginResponse(loginUser);
         return new ResponseEntity<>(response,jwtHeader, HttpStatus.OK);
     }
-
     /**
-     * {@code register} used to handle the registration request, this accepts the object
+     * {@code forgetPassword} used to handle the forget password request, this accepts the object
      * @param user that contains the credential provided by the user
      * @return ResponseEntity containing the user object, and  Http Status
      * */
-    @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user){
-        User newUser = this.userService.registerUser(user);
-        return new ResponseEntity<>(newUser,HttpStatus.OK);
+    @PostMapping("/forget-password")
+    public ResponseEntity<User> forgetPassword(@RequestBody User user) throws MessagingException {
+            User newPassword =  userService.forgetPassword(user);
+            return ResponseEntity.ok(newPassword);
     }
 
     private void authUserLogin(String username, String password){

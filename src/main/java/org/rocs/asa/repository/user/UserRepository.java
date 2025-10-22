@@ -3,6 +3,8 @@ package org.rocs.asa.repository.user;
 import org.rocs.asa.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 /**
  * {@code PersonRepository} is an interface of User repository
  * */
@@ -24,4 +26,5 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
 
     User findByUserId(String userId);
+
 }

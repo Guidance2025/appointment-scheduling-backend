@@ -3,19 +3,18 @@ package org.rocs.asa.domain.notification;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.rocs.asa.domain.appointment.Appointment;
-import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.user.User;
 
 import java.time.LocalDateTime;
 @Data
 @Entity
 @Table(name = "tbl_notification")
-public class Notification {
+public class Notifications {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "notification_id")
-    private Long id;
+    private Long notificationId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)

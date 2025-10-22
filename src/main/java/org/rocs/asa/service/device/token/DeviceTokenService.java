@@ -6,6 +6,5 @@ public interface DeviceTokenService {
 
     DeviceToken registerDeviceToken(DeviceToken deviceToken);
 
-    DeviceToken removeDeviceToken(Long userId, String fcmToken);
 
 }
