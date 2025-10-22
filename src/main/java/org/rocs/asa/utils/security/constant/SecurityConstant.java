@@ -26,7 +26,7 @@ public class SecurityConstant {
     /**
      * application description
      * */
-    public static final String GUIDANCE_ADMINISTRATION = "Appointment Scheduling self Service";
+    public static final String GUIDANCE_ADMINISTRATION = "Appointment Scheduling Service";
     /**
      * key for storing authorities in JWT claims
      * */
@@ -46,5 +46,5 @@ public class SecurityConstant {
     /**
      * URL's that are available in public
      * */
-    public static final String[] PUBLIC_URLS = {"/user/login","user/register"};
+    public static final String[] PUBLIC_URLS = {"/user/login","user/register","notification/**","/user/forget-password"};
     }

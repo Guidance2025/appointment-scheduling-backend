@@ -91,12 +91,11 @@ public  class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("http://localhost:5173"));
+        corsConfiguration.setAllowedOrigins(List.of("http://localhost:5174","http://localhost:5173","http://localhost:5175"));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
         corsConfiguration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
         corsConfiguration.setExposedHeaders(List.of("Jwt-Token"));
         corsConfiguration.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**",corsConfiguration);
         return source;
@@ -113,7 +112,10 @@ public  class SecurityConfiguration {
         httpSecurity.cors().and()
                 .csrf(AbstractHttpConfigurer::disable).
                 sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).
-                authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_URLS).permitAll().anyRequest().authenticated()).
+                authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_URLS).permitAll()
+                        .requestMatchers("/admin").hasRole("ADMIN")
+                        .requestMatchers("/counselor").hasAnyRole("GUIDANCE","ADMIN")
+                        .anyRequest().authenticated()).
                 exceptionHandling(e -> {
                     e.authenticationEntryPoint(authenticationEntryPoint);
                     e.accessDeniedHandler(jwtAccessDeniedHandler);

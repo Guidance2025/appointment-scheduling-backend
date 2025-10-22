@@ -1,7 +1,10 @@
 package org.rocs.asa.service.user;
 
+import jakarta.mail.MessagingException;
+import org.rocs.asa.domain.registration.Registration;
 import org.rocs.asa.domain.user.User;
-import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Map;
 
 /**
  * {@code UserService} is an interface of the UserService
@@ -26,8 +29,16 @@ public interface UserService{
     /**
      * registers the user using their credentials
      *
-     * @param user is the object of the user that contains the user credential
+     * @param registration is the data transfer object of the user that contains the user credential
      * @return User
      */
-    User registerUser(User user);
+    Registration registerUser(Registration registration);
+    /**
+     * this is used to set a new password when a user forgets it
+     *
+     * @param user is the object that contains the user credentials
+     * */
+    User forgetPassword(User user) throws MessagingException;
+
+    Map<String ,Object> buildLoginResponse(User user);
 }

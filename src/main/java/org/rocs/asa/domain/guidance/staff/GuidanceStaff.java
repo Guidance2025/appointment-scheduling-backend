@@ -3,6 +3,7 @@ package org.rocs.asa.domain.guidance.staff;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.rocs.asa.domain.person.Person;
+import org.rocs.asa.domain.user.User;
 
 @Data
 @Entity
@@ -11,7 +12,7 @@ public class GuidanceStaff {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "employee_number")
-    private Long employeeNumber;
+    private Long id;
 
     @OneToOne
     @JoinColumn(name = "person_id")
@@ -19,5 +20,10 @@ public class GuidanceStaff {
 
     @Column(name = "position_in_rc")
     private String positionInRc;
+
+    @OneToOne
+    @JoinColumn(name = "login_id")
+    private User user;
+
 
 }
