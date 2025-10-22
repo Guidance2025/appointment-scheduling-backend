@@ -10,7 +10,7 @@ public class Section{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "section_id")
-    private Long sectionId;
+    private Long id;
 
     @Column(name = "organization")
     private String organization;

@@ -1,10 +1,10 @@
 package org.rocs.asa.service.student.profile.impl;
 
 import jakarta.transaction.Transactional;
-import jakarta.validation.Valid;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.dto.StudentInformationDto;
 import org.rocs.asa.exception.domain.EmptyFieldException;
 import org.rocs.asa.exception.domain.StudentNotFoundException;
 import org.rocs.asa.exception.domain.StudentNumberAlreadyExistException;
@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 @Service
 public class StudentProfileServiceImpl implements StudentProfileService {
     private static Logger LOGGER = LoggerFactory.getLogger(StudentProfileServiceImpl.class);
@@ -25,18 +24,26 @@ public class StudentProfileServiceImpl implements StudentProfileService {
     public StudentProfileServiceImpl(StudentRepository studentRepository) {
         this.studentRepository = studentRepository;
     }
-
-    public Student findStudentByStudentNumber(String studentNumber) {
-
-        Student student = studentRepository.findStudentByStudentNumber(studentNumber);
-
-        if (student == null) {
-            LOGGER.error("Student with number [{}] not found", studentNumber);
-            throw new StudentNotFoundException("Student with number " + studentNumber + " not found");
+    @Override
+    public StudentInformationDto getPersonByStudentNumber(String studentNumber) {
+        if (studentNumber == null || studentNumber.isBlank()) {
+            throw new StudentNotFoundException("Student number is blank");
         }
 
-        LOGGER.info("Successfully found student with number [{}]", studentNumber);
-        return student;
+        Student student = studentRepository.findStudentByStudentNumber(studentNumber.trim());
+
+        if(student == null) {
+            LOGGER.info("Student Not Found with Student Number {}", studentNumber);
+            throw new StudentNotFoundException("Student not found with this Student Number");
+        }
+
+        Person person = student.getPerson();
+        if (person == null) {
+            LOGGER.info("Person details not found for Student Number {}", studentNumber);
+            throw new StudentNotFoundException("Person details not found for this student");
+        }
+
+        return new StudentInformationDto(student.getStudentNumber(), person.getFirstName(), person.getLastName());
     }
 
     @Override

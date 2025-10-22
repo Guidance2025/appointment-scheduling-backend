@@ -1,14 +1,24 @@
 package org.rocs.asa.service.user.impl;
 
+import jakarta.mail.MessagingException;
 import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
+import org.rocs.asa.domain.person.Person;
+import org.rocs.asa.domain.registration.Registration;
+import org.rocs.asa.domain.section.Section;
+import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.domain.user.principal.UserPrincipal;
 import org.rocs.asa.exception.domain.EmailExistException;
 import org.rocs.asa.exception.domain.UserNotFoundException;
-import org.rocs.asa.exception.domain.UsernameExistsException;
+import org.rocs.asa.exception.domain.UsernameExistException;
+import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
+import org.rocs.asa.repository.person.PersonRepository;
+import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.repository.user.UserRepository;
+import org.rocs.asa.service.email.EmailService;
 import org.rocs.asa.service.login.attempts.LoginAttemptService;
 import org.rocs.asa.service.user.UserService;
 import org.slf4j.Logger;
@@ -23,6 +33,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.rocs.asa.exception.constants.ExceptionConstants.USER_NOT_FOUND;
 import static org.rocs.asa.utils.security.enumeration.Role.*;
@@ -35,12 +47,29 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private UserRepository userRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private LoginAttemptService loginAttemptsService;
+    private StudentRepository studentRepository;
+    private PersonRepository personRepository;
+    private GuidanceStaffRepository guidanceStaffRepository;
+    private EmailService emailService;
+
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder,LoginAttemptService loginAttemptsService) {
+    public UserServiceImpl(UserRepository userRepository,
+                           BCryptPasswordEncoder bCryptPasswordEncoder,
+                           LoginAttemptService loginAttemptsService,
+                           StudentRepository studentRepository,
+                           PersonRepository personRepository,
+                           GuidanceStaffRepository guidanceStaffRepository,
+                           EmailService emailService) {
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.loginAttemptsService = loginAttemptsService;
+        this.studentRepository = studentRepository;
+        this.personRepository = personRepository;
+        this.guidanceStaffRepository = guidanceStaffRepository;
+        this.emailService = emailService;
     }
+
+
 
     @Override
     public User findUserByUsername(String username) {
@@ -67,69 +96,169 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public User registerUser(User user) {
-
-            validateUsernameEmail(StringUtils.EMPTY, user.getUsername(), user.getPerson().getEmail());
-            User newUser = new User();
-            String password;
-            newUser.setUserId(generateUserId());
-            if(user.getPassword() == null){
-                password = generatePassword();
-            }else{
-                password = user.getPassword();
-            }
-            String encryptedPassword = encodePassword(password);
-
-            newUser.setPerson(user.getPerson());
-            newUser.setJoinDate(new Date());
-            newUser.setUsername(user.getUsername());
-            newUser.setPassword(encryptedPassword);
-
-            newUser.setActive(true);
-            newUser.setLocked(false);
-
-
-            if(user.getRole().equals("teacher")){
-            newUser.setRole(GUIDANCE_ROLE.name());
-            newUser.setAuthorities(Arrays.stream(GUIDANCE_ROLE.getAuthorities()).toList());
-        }else if(user.getRole().equals("admin")){
-            newUser.setRole(ADMIN_ROLE.name());
-            newUser.setAuthorities(Arrays.stream(ADMIN_ROLE.getAuthorities()).toList());
-        }else if(user.getRole().equals("student")){
-            newUser.setRole(STUDENT_ROLE.name());
-            newUser.setAuthorities(Arrays.stream(STUDENT_ROLE.getAuthorities()).toList());
-        }else{
-            newUser.setRole(USER_ROLE.name());
-            newUser.setAuthorities(Arrays.stream(USER_ROLE.getAuthorities()).toList());
+    public Registration registerUser(Registration registration) {
+        if(registration.getStudent() != null){
+            return registerStudent(registration);
+        }else if(registration.getGuidanceStaff() != null) {
+            return registerGuidanceStaff(registration);
         }
-
-        this.userRepository.save(newUser);
-
-        return newUser;
+        return registration;
     }
 
-    private User validateUsernameEmail(String currentUsername, String newUsername, String email) throws UserNotFoundException,EmailExistException,UsernameExistsException{
-        User userBynewUsername = findUserByUsername(newUsername);
-        User userByEmail = findUserByPersonEmail(email);
+    private Registration registerStudent(Registration registration){
+        validateUsername(StringUtils.EMPTY, registration.getStudent().getUser().getUsername());
 
+        String username = registration.getStudent().getUser().getUsername();
+        String password = registration.getStudent().getUser().getPassword() == null
+                ? generatePassword()
+                : registration.getStudent().getUser().getPassword();
+        Person savedPerson= this.personRepository.save(registration.getStudent().getPerson());
+
+        User newUser = new User();
+        newUser.setPerson(savedPerson);
+        newUser.setUserId(generateUserId());
+        newUser.setUsername(username);
+        newUser.setPassword(encodePassword(password));
+        newUser.setActive(true);
+        newUser.setLocked(false);
+        newUser.setJoinDate(new Date());
+        newUser.setRole(STUDENT_ROLE.name());
+        newUser.setAuthorities(Arrays.stream(STUDENT_ROLE.getAuthorities()).toList());
+
+        User savedUser = this.userRepository.save(newUser);
+
+        Section section = registration.getStudent().getSection();
+
+        Student student = new Student();
+        student.setPerson(savedPerson);
+        student.setSection(section);
+        student.setStudentNumber(registration.getStudent().getStudentNumber());
+        student.setUser(savedUser);
+
+        Student savedStudent = this.studentRepository.save(student);
+        Registration savedRegistration = new Registration();
+
+        savedRegistration.setStudent(savedStudent);
+        return savedRegistration;
+    }
+
+
+    private Registration registerGuidanceStaff(Registration registration) {
+
+        validateUsername(StringUtils.EMPTY, registration.getGuidanceStaff().getUser().getUsername());
+        String username = registration.getGuidanceStaff().getUser().getUsername();
+        String password = registration.getGuidanceStaff().getUser().getPassword();
+
+        Person savedPerson = this.personRepository.save(registration.getGuidanceStaff().getPerson());
+
+        User newUser = new User();
+        newUser.setPerson(savedPerson);
+        newUser.setUserId(generateUserId());
+        newUser.setUsername(username);
+        newUser.setPassword(encodePassword(password));
+        newUser.setActive(true);
+        newUser.setLocked(false);
+        newUser.setJoinDate(new Date());
+        newUser.setRole(GUIDANCE_ROLE.name());
+        newUser.setAuthorities(Arrays.stream(GUIDANCE_ROLE.getAuthorities()).toList());
+        User savedUser = this.userRepository.save(newUser);
+
+        GuidanceStaff guidanceStaff = new GuidanceStaff();
+        guidanceStaff.setPerson(savedPerson);
+        guidanceStaff.setUser(savedUser);
+        guidanceStaff.setPositionInRc(registration.getGuidanceStaff().getPositionInRc());
+
+        GuidanceStaff savedGuidanceStaff = guidanceStaffRepository.save(guidanceStaff);
+
+        Registration savedRegistration = new Registration();
+        savedRegistration.setGuidanceStaff(savedGuidanceStaff);
+
+        return savedRegistration;
+    }
+
+
+    @Override
+    @Transactional
+    public User forgetPassword(User user) throws MessagingException {
+        String username = user.getUsername();
+        User newUser = this.userRepository.findUserByUsername(username);
+
+        if(newUser == null){
+            throw new UserNotFoundException("username does not exist");
+        }
+
+        String password = user.getPassword();
+        String encryptedPassword = encodePassword(password);
+
+        // Update only necessary fields
+        newUser.setPassword(encryptedPassword);
+        newUser.setLocked(false);
+        newUser.setActive(true);
+
+        // Save BEFORE fetching related entities
+        User savedUser = userRepository.save(newUser);
+
+        // Now fetch related entities using the saved user's ID
+        Student studentAccount = this.studentRepository.findStudentByUserId(savedUser.getId());
+        GuidanceStaff employeeAccount = this.guidanceStaffRepository.findEmployeeByUserId(savedUser.getId());
+
+        if(studentAccount != null && studentAccount.getPerson() != null && studentAccount.getPerson().getEmail() != null) {
+            emailService.sendNewPasswordEmail(
+                    studentAccount.getPerson().getEmail(),
+                    studentAccount.getPerson().getFirstName(),
+                    password
+            );
+        } else if (employeeAccount != null && employeeAccount.getPerson() != null
+                && employeeAccount.getPerson().getEmail() != null) {
+            emailService.sendNewPasswordEmail(
+                    employeeAccount.getPerson().getEmail(),
+                    employeeAccount.getPerson().getFirstName(),
+                    password
+            );
+        }
+        return savedUser;
+    }
+
+    @Override
+    public Map<String, Object> buildLoginResponse(User user) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Login Success");
+        response.put("role", user.getRole());
+        response.put("userId", user.getUserId());
+
+        if ("GUIDANCE_ROLE".equals(user.getRole())) {
+            GuidanceStaff guidanceStaff = guidanceStaffRepository.findByUser(user);
+            if (guidanceStaff != null) {
+                response.put("guidanceStaffId", guidanceStaff.getId());
+                LOGGER.info("Guidance Staff ID added to response: {}", guidanceStaff.getId());
+            }
+        }
+
+        if ("STUDENT_ROLE".equals(user.getRole())) {
+            Student student = studentRepository.findByUser(user);
+            if (student != null) {
+                response.put("studentId", student.getId());
+                LOGGER.info("Student ID added to response: {}", student.getId());
+            }
+        }
+
+        return response;
+    }
+
+    private User validateUsername(String currentUsername, String newUsername) throws UserNotFoundException,EmailExistException,UsernameExistException{
+        User userEmail = findUserByUsername(newUsername);
         if(StringUtils.isNotBlank(currentUsername)){
             User currentUser = findUserByUsername(currentUsername);
             if(currentUser == null){
                 throw new UserNotFoundException("User not found");
             }
-            if(userByEmail != null && !userByEmail.getLoginId().equals(currentUser.getLoginId())){
-                throw new EmailExistException("Email is already exist");
-            }
-            if(userBynewUsername != null && userBynewUsername.getLoginId().equals(currentUser.getLoginId())){
-                throw new UsernameExistsException("Username is already Exist");
+            if(userEmail != null && !userEmail.getId().equals(currentUser.getId())){
+                throw new UsernameExistException("Username is already exist");
             }
             return currentUser;
-        }else{
-            if(userBynewUsername != null){
-                throw new UsernameExistsException("Username is already Exist");
-            }
-            if(userByEmail != null){
-                throw new EmailExistException("Email is already exist");
+        } else {
+            if(userEmail != null){
+                throw new UsernameExistException("Username is already exist");
             }
             return null;
         }

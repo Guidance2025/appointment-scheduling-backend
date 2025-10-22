@@ -1,5 +1,6 @@
 package org.rocs.asa.controller.appointment;
 
+import jakarta.validation.Path;
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.service.appointment.AppointmentService;
@@ -11,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+
 /**
  * REST controller for managing appointments.
  * Provides endpoints for managing appointments.
@@ -18,7 +21,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/counselor")
 @CrossOrigin("*")
-
 public class AppointmentController {
     private static Logger LOGGER = LoggerFactory.getLogger(AppointmentController.class);
     private AppointmentService appointmentService;
@@ -45,12 +47,12 @@ public class AppointmentController {
     /**
      * Creates a new appointment.
      *
-     * @param requestDto the DTO containing appointment creation details
+     * @param request the DTO containing appointment creation details
      * @return ResponseEntity containing the created AppointmentResponseDto and HTTP status 200 OK
      */
     @PostMapping("/create-appointment")
-    public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody Appointment requestDto) {
-        Appointment appointment = appointmentService.createAppointment(requestDto);
+    public ResponseEntity<Appointment> createAppointment(@Valid @RequestBody Appointment request) {
+        Appointment appointment = appointmentService.createAppointment(request);
         return new ResponseEntity<>(appointment,HttpStatus.OK);
     }
     /**
@@ -59,9 +61,9 @@ public class AppointmentController {
      * @param status the status to filter appointments
      * @return ResponseEntity containing a list of Appointment objects matching the status and HTTP status 200 OK
      */
-    @GetMapping("/appointment/{status}")
-    public ResponseEntity<List<Appointment>> getAppointmentFindByStatus(@PathVariable String status) {
-        List<Appointment> allAppointments = appointmentService.findAppointmentByStatus(status);
+    @GetMapping("/appointment/{status}/{guidanceId}")
+    public ResponseEntity<List<Appointment>> getAppointmentFindByStatus(@PathVariable String status ,@PathVariable Long guidanceId) {
+        List<Appointment> allAppointments = appointmentService.findAppointmentByStatus(guidanceId,status);
         return ResponseEntity.ok(allAppointments);
     }
     /**
@@ -75,4 +77,19 @@ public class AppointmentController {
         Appointment appointment = appointmentService.findAppointmentsByAppointmentId(appointmentId);
         return ResponseEntity.ok(appointment);
     }
+
+    @PostMapping("/{appointmentId}/response")
+    public ResponseEntity<Appointment> getResponseAppointment (@PathVariable Long appointmentId, @RequestBody Map<String,String> data){
+        Appointment response = appointmentService.studentResponseToAppointment(appointmentId,data);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/find/appointment/{employeeNumber}")
+    public ResponseEntity <List<Appointment>> getAppointmentByGuidanceStaff(@PathVariable Long employeeNumber){
+        List<Appointment> guidanceStaffAppointment = appointmentService.getAppointmentByGuidanceStaff(employeeNumber);
+        return ResponseEntity.ok(guidanceStaffAppointment);
+    }
+
+
+
 }

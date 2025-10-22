@@ -11,8 +11,8 @@ grant create session to guidance with admin option;
 grant connect to guidance;
 
 alter session set current_schema = guidance;
-
 drop table tbl_person cascade constraints;
+
 drop table tbl_user_device_token cascade constraints;
 drop table tbl_login cascade constraints;
 drop table tbl_section cascade constraints;
@@ -48,7 +48,7 @@ create table tbl_user_device_token (
     user_id number(20,0),
     device_type varchar2(64 char),
     fcm_token varchar2(64 char),
-    create_at timestamp(6),
+    created_at timestamp(6),
     updated_at timestamp(6),
     primary key (token_id));
 
