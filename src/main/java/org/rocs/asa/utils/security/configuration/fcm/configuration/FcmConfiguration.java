@@ -1,4 +1,4 @@
-package org.rocs.asa.utils.fcm.configuration;
+package org.rocs.asa.utils.security.configuration.fcm.configuration;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -11,10 +11,30 @@ import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
 
+/**
+ * {@code FcmConfiguration} is responsible for initializing the Firebase SDK
+ * for the application. It loads the service account credentials from the classpath
+ * and ensures that Firebase is only initialized once.
+ */
 @Configuration
 public class FcmConfiguration {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(FcmConfiguration.class);
 
+    /**
+     * Initializes Firebase when the Spring context is fully loaded.
+     * <p>
+     * This method performs the following:
+     * <ul>
+     *     <li>Checks if Firebase is already initialized.</li>
+     *     <li>Loads the service account JSON from the classpath.</li>
+     *     <li>Initializes FirebaseApp with credentials and project ID.</li>
+     *     <li>Logs initialization details for monitoring.</li>
+     * </ul>
+     * <p>
+     * Throws a {@code RuntimeException} if initialization fails or the service
+     * account file is missing.
+     */
     @PostConstruct
     public void initialize() {
         try {
@@ -44,7 +64,7 @@ public class FcmConfiguration {
                 LOGGER.info("Firebase app name: {}", app.getName());
 
             } else {
-                LOGGER.info("Firebase already initialized. Apps: {}", FirebaseApp.getApps().size());
+                LOGGER.info("Firebase already initialized. Number of apps: {}", FirebaseApp.getApps().size());
             }
         } catch (IOException e) {
             LOGGER.error("Failed to initialize Firebase - IO Error: {}", e.getMessage(), e);

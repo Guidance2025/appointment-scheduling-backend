@@ -3,6 +3,7 @@ package org.rocs.asa.service.user;
 import jakarta.mail.MessagingException;
 import org.rocs.asa.domain.registration.Registration;
 import org.rocs.asa.domain.user.User;
+import org.rocs.asa.service.password.reset.PasswordResetTokenService;
 
 import java.util.Map;
 
@@ -33,12 +34,27 @@ public interface UserService{
      * @return User
      */
     Registration registerUser(Registration registration);
+
+    /**
+     * Initiates password reset process
+     * Sends verification email with token
+     *
+     * @param username user's username
+     * @param newPassword the new password to set after verification
+     */
+    void initiatePasswordReset(String username, String newPassword) throws MessagingException;
+
+    /**
+     * Verifies token and completes password reset
+     *
+     * @param token verification token from email
+     */
+    void verifyAndCompletePasswordReset(String token);
     /**
      * this is used to set a new password when a user forgets it
      *
      * @param user is the object that contains the user credentials
      * */
-    User forgetPassword(User user) throws MessagingException;
 
     Map<String ,Object> buildLoginResponse(User user);
 }

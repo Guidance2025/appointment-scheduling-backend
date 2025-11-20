@@ -64,7 +64,6 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<HttpResponse> userNotFoundException(UserNotFoundException exception){
         return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
-
     @ExceptionHandler(NoResultException.class)
     public ResponseEntity<HttpResponse> notFoundException(NoResultException exception){
         return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());

@@ -1,6 +1,6 @@
 package org.rocs.asa.service.student.inforamation.impl;
 
-import org.rocs.asa.domain.dto.student.information.StudentInformation;
+import org.rocs.asa.domain.student.information.response.StudentInformation;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.service.student.inforamation.StudentInformationService;

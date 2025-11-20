@@ -11,20 +11,21 @@ import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.domain.user.principal.UserPrincipal;
-import org.rocs.asa.exception.domain.EmailExistException;
-import org.rocs.asa.exception.domain.UserNotFoundException;
-import org.rocs.asa.exception.domain.UsernameExistException;
+import org.rocs.asa.exception.domain.*;
 import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
 import org.rocs.asa.repository.person.PersonRepository;
+import org.rocs.asa.repository.section.SectionRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.email.EmailService;
 import org.rocs.asa.service.login.attempts.LoginAttemptService;
+import org.rocs.asa.service.password.reset.PasswordResetTokenService;
 import org.rocs.asa.service.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -51,7 +52,14 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private PersonRepository personRepository;
     private GuidanceStaffRepository guidanceStaffRepository;
     private EmailService emailService;
+    private PasswordResetTokenService passwordResetTokenService;
+    private SectionRepository sectionRepository;
 
+    @Value("${spring.application.frontend-url}")
+    private String frontendUrl;
+
+    @Value("${spring.application.endpoints.password-reset-verify}")
+    private String verifyEndpoint;
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            BCryptPasswordEncoder bCryptPasswordEncoder,
@@ -59,7 +67,10 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                            StudentRepository studentRepository,
                            PersonRepository personRepository,
                            GuidanceStaffRepository guidanceStaffRepository,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           PasswordResetTokenService passwordResetTokenService,
+                           SectionRepository sectionRepository) {
+
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.loginAttemptsService = loginAttemptsService;
@@ -67,6 +78,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         this.personRepository = personRepository;
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.emailService = emailService;
+        this.passwordResetTokenService = passwordResetTokenService;
+        this.sectionRepository = sectionRepository;
     }
 
 
@@ -104,6 +117,57 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         }
         return registration;
     }
+    @Override
+    public void initiatePasswordReset(String username, String newPassword) throws MessagingException {
+        User existingUser = userRepository.findUserByUsername(username);
+        if(existingUser == null ) {
+            throw new UserNotFoundException("User does not exist");
+
+        }
+        String userEmail = existingUser.getPerson().getEmail();
+
+        User validateEmail = userRepository.findUserByPersonEmail(userEmail);
+
+        if(validateEmail == null) {
+            throw new EmailNotFoundException("Email does not Exist");
+        }
+        if(this.passwordResetTokenService.exceedMaxAttempts(userEmail)) {
+            throw new TooManyAttemptsException("Too many attempts. Try again later");
+        }
+        String encryptedPassword = encodePassword(newPassword);
+        String token = passwordResetTokenService.generateSecureToken(userEmail,encryptedPassword);
+
+        String verifyToken = buildResetPasswordUrl(token);
+        this.passwordResetTokenService.incrementAttempts(userEmail);
+        this.emailService.sendPasswordResetVerificationEmail(userEmail,verifyToken);
+    }
+    @Override
+    public void verifyAndCompletePasswordReset(String token) {
+        Map<String,String> tokenData = passwordResetTokenService.validateToken(token);
+        String email = tokenData.get("email");
+        String encryptedPassword = tokenData.get("password");
+
+        if (email == null || encryptedPassword == null) {
+            throw new InvalidTokenException("Invalid or expired token");
+        }
+
+        User existingUser = this.userRepository.findUserByPersonEmail(email);
+
+        existingUser.setPassword(encryptedPassword);
+        existingUser.setActive(true);
+        existingUser.setLocked(false);
+        userRepository.save(existingUser);
+
+        this.passwordResetTokenService.evictTokenInCache(token);
+        this.passwordResetTokenService.clearAttempts(email);
+
+
+        LOGGER.info("Password successfully reset for user: {}", existingUser.getUsername());
+
+    }
+    private String buildResetPasswordUrl(String token){
+        return frontendUrl + "/verification-success?token=" + token;
+    }
 
     private Registration registerStudent(Registration registration){
         validateUsername(StringUtils.EMPTY, registration.getStudent().getUser().getUsername());
@@ -128,10 +192,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         User savedUser = this.userRepository.save(newUser);
 
         Section section = registration.getStudent().getSection();
+        Section saveSection = this.sectionRepository.save(section);
 
         Student student = new Student();
         student.setPerson(savedPerson);
-        student.setSection(section);
+        student.setSection(saveSection);
         student.setStudentNumber(registration.getStudent().getStudentNumber());
         student.setUser(savedUser);
 
@@ -139,6 +204,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         Registration savedRegistration = new Registration();
 
         savedRegistration.setStudent(savedStudent);
+        LOGGER.info("Guidance Staff Account Successfully Created! ");
         return savedRegistration;
     }
 
@@ -172,51 +238,8 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         Registration savedRegistration = new Registration();
         savedRegistration.setGuidanceStaff(savedGuidanceStaff);
-
+        LOGGER.info("Student Account Successfully Created! ");
         return savedRegistration;
-    }
-
-
-    @Override
-    @Transactional
-    public User forgetPassword(User user) throws MessagingException {
-        String username = user.getUsername();
-        User newUser = this.userRepository.findUserByUsername(username);
-
-        if(newUser == null){
-            throw new UserNotFoundException("username does not exist");
-        }
-
-        String password = user.getPassword();
-        String encryptedPassword = encodePassword(password);
-
-        // Update only necessary fields
-        newUser.setPassword(encryptedPassword);
-        newUser.setLocked(false);
-        newUser.setActive(true);
-
-        // Save BEFORE fetching related entities
-        User savedUser = userRepository.save(newUser);
-
-        // Now fetch related entities using the saved user's ID
-        Student studentAccount = this.studentRepository.findStudentByUserId(savedUser.getId());
-        GuidanceStaff employeeAccount = this.guidanceStaffRepository.findEmployeeByUserId(savedUser.getId());
-
-        if(studentAccount != null && studentAccount.getPerson() != null && studentAccount.getPerson().getEmail() != null) {
-            emailService.sendNewPasswordEmail(
-                    studentAccount.getPerson().getEmail(),
-                    studentAccount.getPerson().getFirstName(),
-                    password
-            );
-        } else if (employeeAccount != null && employeeAccount.getPerson() != null
-                && employeeAccount.getPerson().getEmail() != null) {
-            emailService.sendNewPasswordEmail(
-                    employeeAccount.getPerson().getEmail(),
-                    employeeAccount.getPerson().getFirstName(),
-                    password
-            );
-        }
-        return savedUser;
     }
 
     @Override
@@ -245,7 +268,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return response;
     }
 
-    private User validateUsername(String currentUsername, String newUsername) throws UserNotFoundException,EmailExistException,UsernameExistException{
+    private User validateUsername(String currentUsername, String newUsername) throws UserNotFoundException,UsernameExistException{
         User userEmail = findUserByUsername(newUsername);
         if(StringUtils.isNotBlank(currentUsername)){
             User currentUser = findUserByUsername(currentUsername);

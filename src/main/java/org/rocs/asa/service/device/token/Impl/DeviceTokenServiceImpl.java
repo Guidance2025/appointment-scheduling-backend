@@ -31,7 +31,6 @@ public class DeviceTokenServiceImpl implements DeviceTokenService {
         this.userRepository = userRepository;
     }
 
-
     @Override
     @Transactional
     public DeviceToken registerDeviceToken(DeviceToken deviceToken) {

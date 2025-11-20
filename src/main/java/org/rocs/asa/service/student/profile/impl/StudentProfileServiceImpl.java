@@ -1,10 +1,10 @@
 package org.rocs.asa.service.student.profile.impl;
 
 import jakarta.transaction.Transactional;
+import org.rocs.asa.domain.student.information.response.StudentInformationDto;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.Student;
-import org.rocs.asa.dto.StudentInformationDto;
 import org.rocs.asa.exception.domain.EmptyFieldException;
 import org.rocs.asa.exception.domain.StudentNotFoundException;
 import org.rocs.asa.exception.domain.StudentNumberAlreadyExistException;

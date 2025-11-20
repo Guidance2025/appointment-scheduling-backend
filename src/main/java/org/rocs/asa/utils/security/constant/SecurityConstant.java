@@ -46,5 +46,11 @@ public class SecurityConstant {
     /**
      * URL's that are available in public
      * */
-    public static final String[] PUBLIC_URLS = {"/user/login","user/register","notification/**","/user/forget-password"};
-    }
+    public static final String[] PUBLIC_URLS = {
+            "/user/login",
+            "/user/register",
+            "/notification/**",
+            "/user/password-reset/initiate",
+            "/user/password-reset/verify",
+    };
+}

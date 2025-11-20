@@ -38,7 +38,6 @@ public class Person implements Serializable {
 
     @Column(nullable = false)
     private String gender;
-    @NotBlank(message = "Email is required")
     @Column(nullable = false, unique = true)
     private String email;
 
