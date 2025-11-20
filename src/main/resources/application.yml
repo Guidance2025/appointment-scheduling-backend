@@ -1,6 +1,11 @@
 spring:
   application:
     name: appointment-scheduling-api
+    base-url: "http://localhost:8080"
+    frontend-url: "http://localhost:5173"
+    endpoints:
+      password-reset-verify: "/user/password-reset/verify"
+
   datasource:
     url: jdbc:oracle:thin:@localhost:1521:orcl
     username: guidance
@@ -17,7 +22,13 @@ firebase:
   project-id: appointment-notification-cc54d
   service-account-file: firebase-service-account.json
 
+
 server:
   address: 0.0.0.0
   port: 8080
 
+password:
+  reset:
+    token:
+      expiration:
+        hours: 24

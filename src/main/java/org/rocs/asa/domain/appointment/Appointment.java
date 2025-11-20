@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Data
-@Table(name = "tbl_appointment")
+@Table(name = "tbl_appointment", indexes = {
+        @Index(name = "idx_status_dates", columnList = "status, scheduled_date, end_date")
+})
 public class Appointment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,15 +34,21 @@ public class Appointment {
     @JsonIgnore
     private User user;
 
+    @Column(name = "scheduled_date")
     private LocalDateTime scheduledDate;
 
+    @Column(name = "end_date")
     private LocalDateTime endDate;
 
+    @Column(name = "date_created")
     private LocalDateTime dateCreated;
 
+    @Column(name = "appointment_type")
     private String appointmentType;
 
+    @Column(name = "status")
     private String status;
 
+    @Column(name = "notes")
     private String notes;
 }

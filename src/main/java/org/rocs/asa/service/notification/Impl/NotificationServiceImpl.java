@@ -5,6 +5,7 @@ import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.notification.Notifications;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.exception.domain.AppointmentNotFoundException;
+import org.rocs.asa.exception.domain.DeviceTokenAlreadyExist;
 import org.rocs.asa.exception.domain.UnknownDeviceTypeException;
 import org.rocs.asa.exception.domain.UserNotFoundException;
 import org.rocs.asa.provider.FcmPushProvider;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -46,26 +48,36 @@ public class NotificationServiceImpl implements NotificationService {
         this.appointmentRepository = appointmentRepository;
     }
     @Override
-    public DeviceToken sendNotificationToUser(String targetUserId, String title, String body, String actionType) {
-        DeviceToken token = deviceTokenRepository.findByUser_UserId(targetUserId);
-
-        if (token == null || token.getFcmToken() == null) {
-            throw new RuntimeException("No FCM token found for user: " + targetUserId);
-        }
-
-        if (token.getDeviceType() == null || token.getDeviceType().isEmpty()) {
-            throw new UnknownDeviceTypeException("Unknown Device Type for user: " + targetUserId);
+    public List<DeviceToken> sendNotificationToUser(String targetUserId, String title, String body, String actionType) {
+        List<DeviceToken> tokens = deviceTokenRepository.findByUser_UserId(targetUserId);
+        if (tokens.isEmpty()) {
+            LOGGER.warn("No device tokens found for user: {}", targetUserId);
+            throw new DeviceTokenAlreadyExist("Device Token does not exist ");
         }
 
         Map<String, String> data = Map.of("actionType", actionType);
+        List<DeviceToken> sentTokens = new ArrayList<>();
 
-        if (token.getDeviceType().equalsIgnoreCase("WEB") ||
-                token.getDeviceType().equalsIgnoreCase("MOBILE")) {
-            fcmPushProvider.sendToToken(token.getFcmToken(), title, body, data);
-            return token;
+        for (DeviceToken token : tokens) {
+            try {
+                if (token.getDeviceType().equalsIgnoreCase("WEB") ||
+                        token.getDeviceType().equalsIgnoreCase("MOBILE")) {
+                    fcmPushProvider.sendToToken(token.getFcmToken(), title, body, data);
+                    sentTokens.add(token);
+                    LOGGER.info("Notification sent to {} device for user: {}", token.getDeviceType(), targetUserId);
+                } else {
+                    LOGGER.warn("Unknown Device Type: {} for user: {}", token.getDeviceType(), targetUserId);
+                }
+            } catch (Exception e) {
+                LOGGER.error("Failed to send notification to device {}: {}", token.getDeviceType(), e.getMessage());
+            }
         }
 
-        throw new UnknownDeviceTypeException("Unknown Device Type: " + token.getDeviceType());
+        if (sentTokens.isEmpty()) {
+            throw new UnknownDeviceTypeException("No valid device types found for user: " + targetUserId);
+        }
+
+        return sentTokens;
     }
     @Override
     public Notifications saveNotification(User user, Appointment appointment, String message, String actionType) {
@@ -98,7 +110,7 @@ public class NotificationServiceImpl implements NotificationService {
     public boolean markAsRead(Long notificationID) {
         LOGGER.info("Updating Notification marking us read.");
         Notifications notifications = notificationRepository.findById(notificationID)
-                .orElseThrow(() -> new AppointmentNotFoundException("Appointment Not Found"));
+              .orElseThrow(() -> new AppointmentNotFoundException("Appointment Not Found"));
 
         notifications.setIsRead(1);
         notifications.setUpdatedAt(LocalDateTime.now());

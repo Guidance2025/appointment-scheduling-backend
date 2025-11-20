@@ -92,7 +92,7 @@ public  class SecurityConfiguration {
     public CorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.setAllowedOrigins(List.of("http://localhost:5174","http://localhost:5173","http://localhost:5175"));
-        corsConfiguration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
+        corsConfiguration.setAllowedMethods(Arrays.asList("GET","POST","PATCH","PUT","DELETE","OPTIONS"));
         corsConfiguration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
         corsConfiguration.setExposedHeaders(List.of("Jwt-Token"));
         corsConfiguration.setAllowCredentials(true);
@@ -100,26 +100,5 @@ public  class SecurityConfiguration {
         source.registerCorsConfiguration("/**",corsConfiguration);
         return source;
     }
-    /**
-     * Provides bean and Configuration for security filters, session management, and request authorizations.
-     *
-     * @param httpSecurity the security configuration for HTTP requests
-     * @return the configured security filter chain
-     * @throws Exception if an error occurs during security setup
-     */
-    @Bean
-    public SecurityFilterChain configure(HttpSecurity httpSecurity) throws Exception {
-        httpSecurity.cors().and()
-                .csrf(AbstractHttpConfigurer::disable).
-                sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)).
-                authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_URLS).permitAll()
-                        .requestMatchers("/admin").hasRole("ADMIN")
-                        .requestMatchers("/counselor").hasAnyRole("GUIDANCE","ADMIN")
-                        .anyRequest().authenticated()).
-                exceptionHandling(e -> {
-                    e.authenticationEntryPoint(authenticationEntryPoint);
-                    e.accessDeniedHandler(jwtAccessDeniedHandler);
-                }).addFilterBefore(jwtAuthorizationFilter, BasicAuthenticationFilter.class);
-        return httpSecurity.build();
-    }
+
 }

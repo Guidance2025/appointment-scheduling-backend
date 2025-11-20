@@ -25,7 +25,7 @@ public class Student implements Serializable {
     @JoinColumn(name = "person_id")
     private Person person;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "section_id")
     private Section section;
 

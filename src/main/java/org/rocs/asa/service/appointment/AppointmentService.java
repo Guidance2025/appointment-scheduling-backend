@@ -1,11 +1,7 @@
 package org.rocs.asa.service.appointment;
 
 import org.rocs.asa.domain.appointment.Appointment;
-import org.rocs.asa.domain.dto.appointment.request.AppointmentRequestDto;
-import org.rocs.asa.domain.user.User;
-import org.springframework.cglib.core.Local;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -26,4 +22,5 @@ public interface AppointmentService {
 
     List<Appointment> getAppointmentByGuidanceStaff (Long employeeNumber);
 
+    void markAsOnGoingOrIsCompleted();
 }

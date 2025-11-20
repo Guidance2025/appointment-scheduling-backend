@@ -1,11 +1,12 @@
 package org.rocs.asa.controller.user;
 
 import jakarta.mail.MessagingException;
-import org.rocs.asa.domain.registration.Registration;
+import org.rocs.asa.domain.password.reset.PasswordResetRequest;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.domain.user.principal.UserPrincipal;
-import org.rocs.asa.exception.domain.UserNotFoundException;
+import org.rocs.asa.exception.domain.InvalidTokenException;
 import org.rocs.asa.service.notification.NotificationService;
+import org.rocs.asa.service.password.reset.PasswordResetTokenService;
 import org.rocs.asa.service.user.UserService;
 import org.rocs.asa.utils.security.jwt.token.provider.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +35,7 @@ public class UserController {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
     private  NotificationService notificationService;
+    private PasswordResetTokenService passwordResetService;
 
     /**
      * Constructs a new {@code UserController} with the required dependencies.
@@ -45,11 +48,12 @@ public class UserController {
      * @param jwtTokenProvider the provider utility for generating and validating JWT used in secure authentication
      */
     @Autowired
-    public UserController(UserService userService, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, NotificationService notificationService) {
+    public UserController(UserService userService, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, NotificationService notificationService, PasswordResetTokenService passwordResetService) {
         this.userService = userService;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.notificationService = notificationService;
+        this.passwordResetService = passwordResetService;
     }
 
     /**
@@ -67,15 +71,37 @@ public class UserController {
         Map<String,Object> response = userService.buildLoginResponse(loginUser);
         return new ResponseEntity<>(response,jwtHeader, HttpStatus.OK);
     }
+
+
     /**
-     * {@code forgetPassword} used to handle the forget password request, this accepts the object
-     * @param user that contains the credential provided by the user
-     * @return ResponseEntity containing the user object, and  Http Status
-     * */
-    @PostMapping("/forget-password")
-    public ResponseEntity<User> forgetPassword(@RequestBody User user) throws MessagingException {
-            User newPassword =  userService.forgetPassword(user);
-            return ResponseEntity.ok(newPassword);
+     * Initiates password reset process
+     * Sends reset link to user's email
+     *
+     * @param request containing username and new password
+     * @return success message
+     */
+    @PostMapping("/password-reset/initiate")
+    public ResponseEntity<Map<String, String>> initiatePasswordReset(@RequestBody PasswordResetRequest request) throws MessagingException {
+        this.userService.initiatePasswordReset(request.getUsername(), request.getNewPassword());
+        Map<String, String> response = Map.of(
+                "message", "Password reset email sent successfully. Please check your inbox."
+        );
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    /**
+     * Verifies token and completes password reset
+     * This endpoint is called when user clicks the email link
+     *
+     * @param token from email link
+     * @return success message and redirects to login
+     */
+    @GetMapping("/password-reset/verify")
+    public ResponseEntity<Map<String, String>> verifyPasswordReset(@RequestParam String token) throws InvalidTokenException {
+        this.userService.verifyAndCompletePasswordReset(token);
+        Map<String, String> response = Map.of("success", "Password successfully changed. You can now login with your new password." );
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     private void authUserLogin(String username, String password){

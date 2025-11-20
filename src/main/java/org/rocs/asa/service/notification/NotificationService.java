@@ -23,7 +23,7 @@ public interface NotificationService {
      * @param actionType   the type of action for this notification
      * @return the device token used for sending
      */
-    DeviceToken sendNotificationToUser(String targetUserId, String title, String body , String actionType);
+    List <DeviceToken> sendNotificationToUser(String targetUserId, String title, String body , String actionType);
 
     /**
      * Saves a notification record for a user and appointment.

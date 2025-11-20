@@ -3,7 +3,6 @@ package org.rocs.asa.domain.user;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
-import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.notification.Notifications;
 import org.rocs.asa.domain.person.Person;
