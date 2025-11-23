@@ -18,7 +18,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.rocs.asa.utils.security.constant.SecurityConstant.JWT_TOKEN_HEADER;

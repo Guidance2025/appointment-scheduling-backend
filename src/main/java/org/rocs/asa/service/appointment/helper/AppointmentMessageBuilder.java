@@ -24,7 +24,7 @@ public class AppointmentMessageBuilder {
         String startTime = appointment.getScheduledDate().format(TIME_FORMAT);
         String endTime = appointment.getEndDate().format(TIME_FORMAT);
 
-        return String.format("%s has %s your appointment request scheduled at %s (%s - %s)",
+        return String.format("%s has %s your appointment request scheduled -  %s (%s - %s)",
                 studentName,
                 action,
                 date,

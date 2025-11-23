@@ -46,7 +46,7 @@ public class EmailService {
         Message message = new MimeMessage(getEmailSession());
         message.setFrom(new InternetAddress(FROM_EMAIL));
         message.setRecipient(Message.RecipientType.TO, new InternetAddress(email));
-        message.setSubject("Password Reset Verification - GABAY");
+        message.setSubject(EMAIL_SUBJECT);
 
         String emailBody = buildEmailBody(verifyUrl);
         message.setText(emailBody);

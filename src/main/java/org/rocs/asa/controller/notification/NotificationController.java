@@ -11,6 +11,7 @@ import org.rocs.asa.service.notification.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,8 +21,6 @@ import java.util.Map;
 
 /**
  * {@code NotificationController} handles all notification and device token operations
- * @author ROCS
- * @version 1.0
  */
 @RestController
 @RequestMapping("/notification")
@@ -94,12 +93,12 @@ public class NotificationController {
 
     /**
      * {@code markAsRead} used to mark a notification as read
-     * @param notificationId that identifies the notification
+     * @param userId that identifies the notification
      * @return ResponseEntity containing success message, and Http Status
      */
-    @PatchMapping("/markAsRead/{notificationId}")
-    public ResponseEntity<String> markAsRead(@PathVariable Long notificationId) {
-        boolean markAsRead = notificationService.markAsRead(notificationId);
+    @PatchMapping("/markAsRead/{userId}")
+    public ResponseEntity<String> markAsRead(@PathVariable String userId) {
+        this.notificationService.markAsRead(userId);
         return ResponseEntity.ok("Successfully updated as read");
     }
 
@@ -112,5 +111,10 @@ public class NotificationController {
     public ResponseEntity<Long> countUnread(@PathVariable String userId) {
         Long unread = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(unread);
+    }
+    @PatchMapping("/{userId}/clear-all")
+    public ResponseEntity<String> clearNotification (@PathVariable String userId) {
+        notificationService.clearNotification(userId);
+        return new ResponseEntity<>("Notification Cleared Successfully ", HttpStatus.OK) ;
     }
 }

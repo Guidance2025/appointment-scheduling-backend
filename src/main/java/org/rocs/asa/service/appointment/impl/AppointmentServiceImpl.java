@@ -56,7 +56,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (student == null) throw new StudentNotFoundException("Student not found");
 
         boolean hasAppointment = appointmentRepository.existsByStudentIdAndStatusIn(
-                student.getId(), List.of("PENDING", "SCHEDULED"));
+                student.getId(), List.of(AppointmentStatus.PENDING.name(), AppointmentStatus.SCHEDULED.name()));
         if (hasAppointment) throw new AppointmentAlreadyExistException("Student already has an appointment");
 
         GuidanceStaff guidanceStaff = guidanceService.findGuidanceStaff();
@@ -68,7 +68,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         newAppointment.setEndDate(request.getEndDate());
         newAppointment.setAppointmentType(request.getAppointmentType());
         newAppointment.setNotes(request.getNotes());
-        newAppointment.setStatus("PENDING");
+        newAppointment.setStatus(AppointmentStatus.PENDING.name());
         newAppointment.setDateCreated(LocalDateTime.now());
 
         Appointment saved = appointmentRepository.save(newAppointment);
@@ -100,15 +100,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         Student student = appointment.getStudent();
         if (!student.getUser().getUserId().equals(student.getUser().getUserId()))
             throw new IllegalArgumentException("Unauthorized");
-        if (!"PENDING".equalsIgnoreCase(appointment.getStatus()))
+        if (!AppointmentStatus.PENDING.name().equalsIgnoreCase(appointment.getStatus()))
             throw new IllegalArgumentException("Appointment is not in PENDING status");
 
         String action = data.get("action");
         if (action == null || action.isBlank()) throw new IllegalArgumentException("Action is required");
 
         switch (action.toUpperCase()) {
-            case "ACCEPT" -> appointment.setStatus("SCHEDULED");
-            case "DECLINE" -> appointment.setStatus("CANCELED");
+            case "ACCEPT" -> appointment.setStatus(AppointmentStatus.SCHEDULED.name());
+            case "DECLINE" -> appointment.setStatus(AppointmentStatus.CANCELLED.name());
             default -> throw new IllegalArgumentException("Invalid action: " + action);
         }
         String studentName = appointment.getStudent().getPerson().getFirstName() + " " +
@@ -163,14 +163,14 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public void markAsOnGoingOrIsCompleted() {
         LocalDateTime now = LocalDateTime.now();
-        List<Appointment> appointments = appointmentRepository.findByStatusInOptimized(List.of("SCHEDULED", "ONGOING"));
+        List<Appointment> appointments = appointmentRepository.findByStatusInOptimized(List.of(AppointmentStatus.SCHEDULED.name(), AppointmentStatus.ONGOING.name()));
         List<Appointment> toUpdate = new ArrayList<>();
 
         for (Appointment appointment : appointments) {
             String oldStatus = appointment.getStatus();
-            if (now.isAfter(appointment.getEndDate())) appointment.setStatus("COMPLETED");
+            if (now.isAfter(appointment.getEndDate())) appointment.setStatus(AppointmentStatus.COMPLETED.name());
             else if (now.isAfter(appointment.getScheduledDate()) && now.isBefore(appointment.getEndDate()))
-                appointment.setStatus("ONGOING");
+                appointment.setStatus(AppointmentStatus.ONGOING.name());
 
             if (!oldStatus.equals(appointment.getStatus())) toUpdate.add(appointment);
         }

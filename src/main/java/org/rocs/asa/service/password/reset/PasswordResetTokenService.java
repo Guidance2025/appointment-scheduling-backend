@@ -2,6 +2,7 @@ package org.rocs.asa.service.password.reset;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.rocs.asa.exception.domain.EmailNotFoundException;
 import org.rocs.asa.exception.domain.InvalidTokenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,6 +132,9 @@ public class PasswordResetTokenService {
      * @return true if the number of attempts for this email is greater than or equal to MAX_ATTEMPTS, false otherwise
      */
     public boolean exceedMaxAttempts(String email) {
+        if(email == null) {
+            throw new EmailNotFoundException("Email not  found");
+        }
         Integer attempts  = passwordResetAttemptsCache.getIfPresent(email);
        return attempts != null && attempts >= MAX_ATTEMPTS;
     }

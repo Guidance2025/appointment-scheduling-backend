@@ -1,5 +1,7 @@
 package org.rocs.asa.service.notification.Impl;
 
+import org.aspectj.weaver.ast.Not;
+import org.checkerframework.checker.units.qual.N;
 import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.notification.Notifications;
@@ -103,23 +105,33 @@ public class NotificationServiceImpl implements NotificationService {
             LOGGER.info("User Not Found");
             throw new UserNotFoundException("User not Found");
         }
-        return notificationRepository.findByUser_UserIdOrderByCreatedAtDesc(userId);
+        return notificationRepository.findNotificationsByUser_UserId(userId);
     }
 
     @Override
-    public boolean markAsRead(Long notificationID) {
+    public void markAsRead(String userId) {
         LOGGER.info("Updating Notification marking us read.");
-        Notifications notifications = notificationRepository.findById(notificationID)
-              .orElseThrow(() -> new AppointmentNotFoundException("Appointment Not Found"));
-
-        notifications.setIsRead(1);
-        notifications.setUpdatedAt(LocalDateTime.now());
-        notificationRepository.save(notifications);
-        return true;
+        List<Notifications> notificationsList = notificationRepository.findNotificationsByUser_UserId(userId);
+        for(Notifications updateNotification : notificationsList ){
+            updateNotification.setIsRead(1);
+            updateNotification.setUpdatedAt(LocalDateTime.now());
+        }
+        notificationRepository.saveAll(notificationsList);
+        LOGGER.info("Mark as Read Successfully");
     }
 
     @Override
     public long getUnreadCount(String userId) {
-        return notificationRepository.countByUser_UserIdAndIsRead(userId, 0);
+         return notificationRepository.countByUser_UserIdAndIsRead(userId, 0);
+    }
+
+    @Override
+    public void clearNotification(String userId) {
+        List<Notifications> activeNotification = notificationRepository.findActiveNotificationByUserId(userId);
+        for(Notifications updateNotification : activeNotification) {
+            updateNotification.setStatus("INACTIVE");
+        }
+        notificationRepository.saveAll(activeNotification);
+        LOGGER.info("Cleared Successfully ");
     }
 }

@@ -163,7 +163,7 @@ public class AccountsServiceImpl implements AccountsService {
             LOGGER.info("Email Updated Successfully for Guidance Employee");
         }
         if(isLocked != null) {
-            user.setLocked(!isLocked);
+            user.setLocked(isLocked);
             user.setActive(!isLocked);
             LOGGER.info("Guidance Staff Account Locked : {}", isLocked);
             LOGGER.info("Guidance Staff Account Active Status : {}", !isLocked);
@@ -184,7 +184,6 @@ public class AccountsServiceImpl implements AccountsService {
             throw new InvalidPasswordException("Password must be at least 6 characters");
         }
     }
-
     private User getUserByStudentNumber(String studentNumber) {
         Student student = studentRepository.findStudentByStudentNumber(studentNumber);
         if(student == null) {

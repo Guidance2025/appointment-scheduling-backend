@@ -32,3 +32,9 @@ password:
     token:
       expiration:
         hours: 24
+admin:
+  default:
+    username: admin
+    password: 123123
+    email: admin@guidance.edu
+  auto-create: true
