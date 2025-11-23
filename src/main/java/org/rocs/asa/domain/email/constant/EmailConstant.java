@@ -29,7 +29,7 @@ public class EmailConstant {
     /**
      * This constant will be used as the subject of the email welcoming users.
      */
-    public static final String EMAIL_SUBJECT = "Welcome to Rogationist College Guidance Facility : Your New Password";
+    public static final String EMAIL_SUBJECT = "Password Reset Verification - GABAY";
 
     /**
      * Simple Mail Transfer Protocol server address for Gmail which will handle sending emails.
@@ -71,7 +71,5 @@ public class EmailConstant {
      */
     public static final String SMTP_STARTTLS_REQUIRED = "mail.smtp.starttls.required";
 
-    public static final String SMTP_SSL_ENABLE = "mail.smtp.ssl.enable";
-    public static final String SMTP_SSL_TRUST = "mail.smtp.ssl.trust";
 }
 

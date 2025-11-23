@@ -39,4 +39,7 @@ public class Notifications {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "status")
+    private String status = "ACTIVE";
+
 }

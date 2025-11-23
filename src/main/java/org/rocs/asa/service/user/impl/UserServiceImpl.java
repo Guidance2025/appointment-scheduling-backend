@@ -21,6 +21,7 @@ import org.rocs.asa.service.email.EmailService;
 import org.rocs.asa.service.login.attempts.LoginAttemptService;
 import org.rocs.asa.service.password.reset.PasswordResetTokenService;
 import org.rocs.asa.service.user.UserService;
+import org.rocs.asa.utils.security.enumeration.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,8 +83,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         this.sectionRepository = sectionRepository;
     }
 
-
-
     @Override
     public User findUserByUsername(String username) {
         return this.userRepository.findUserByUsername(username);
@@ -122,11 +121,10 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         User existingUser = userRepository.findUserByUsername(username);
         if(existingUser == null ) {
             throw new UserNotFoundException("User does not exist");
-
         }
         String userEmail = existingUser.getPerson().getEmail();
 
-        User validateEmail = userRepository.findUserByPersonEmail(userEmail);
+        User validateEmail = findUserByPersonEmail(userEmail);
 
         if(validateEmail == null) {
             throw new EmailNotFoundException("Email does not Exist");
@@ -169,14 +167,67 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         return frontendUrl + "/verification-success?token=" + token;
     }
 
-    private Registration registerStudent(Registration registration){
-        validateUsername(StringUtils.EMPTY, registration.getStudent().getUser().getUsername());
+    @Transactional
+    private Registration registerStudent(Registration registration) {
 
-        String username = registration.getStudent().getUser().getUsername();
-        String password = registration.getStudent().getUser().getPassword() == null
+        if (registration == null || registration.getStudent() == null) {
+            LOGGER.error("Registration or Student object is null");
+            throw new IllegalArgumentException("Registration and Student information are required");
+        }
+
+        User user = registration.getStudent().getUser();
+        Person person = registration.getStudent().getPerson();
+        Section section = registration.getStudent().getSection();
+        String studentNumber = registration.getStudent().getStudentNumber();
+
+        if (user == null) {
+            LOGGER.error("User not found in registration");
+            throw new UserNotFoundException("User information is required");
+        }
+        if (person == null) {
+            LOGGER.error("Person not found in registration");
+            throw new PersonNotFoundException("Person information is required");
+        }
+        if (section == null) {
+            LOGGER.error("Section not found in registration");
+            throw new SectionNotFoundException("Section information is required");
+        }
+        if (studentNumber == null || studentNumber.trim().isEmpty()) {
+            LOGGER.error("Student number is missing");
+            throw new IllegalArgumentException("Student number is required");
+        }
+
+        validateUsername(StringUtils.EMPTY, user.getUsername());
+        String username = user.getUsername();
+        String password = user.getPassword() == null
                 ? generatePassword()
-                : registration.getStudent().getUser().getPassword();
-        Person savedPerson= this.personRepository.save(registration.getStudent().getPerson());
+                : user.getPassword();
+        String email = person.getEmail();
+
+        User existingUserByUsername = this.userRepository.findUserByUsername(username);
+        if (existingUserByUsername != null) {
+            LOGGER.error("Username already exists: {}", username);
+            throw new UsernameExistsException("Username already exists");
+        }
+
+        User existingUserByEmail = this.userRepository.findUserByPersonEmail(email);
+        if (existingUserByEmail != null) {
+            LOGGER.error("Email already exists: {}", email);
+            throw new EmailAlreadyExistException("Email already exists");
+        }
+
+        Student existingStudent = this.studentRepository.findStudentByStudentNumber(studentNumber);
+        if (existingStudent != null) {
+            LOGGER.error("Student number already exists: {}", studentNumber);
+            throw new StudentNumberAlreadyExistException("Student number already exists");
+        }
+
+        if (user.getPassword() != null) {
+            validatePassword(password);
+        }
+
+        Person savedPerson = this.personRepository.save(person);
+        LOGGER.info("Person saved successfully with ID: {}", savedPerson.getId());
 
         User newUser = new User();
         newUser.setPerson(savedPerson);
@@ -188,34 +239,68 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         newUser.setJoinDate(new Date());
         newUser.setRole(STUDENT_ROLE.name());
         newUser.setAuthorities(Arrays.stream(STUDENT_ROLE.getAuthorities()).toList());
-
         User savedUser = this.userRepository.save(newUser);
+        LOGGER.info("User saved successfully with username: {}", savedUser.getUsername());
 
-        Section section = registration.getStudent().getSection();
-        Section saveSection = this.sectionRepository.save(section);
+        Section savedSection = this.sectionRepository.save(section);
+        LOGGER.info("Section saved Successfully");
 
         Student student = new Student();
         student.setPerson(savedPerson);
-        student.setSection(saveSection);
-        student.setStudentNumber(registration.getStudent().getStudentNumber());
+        student.setSection(savedSection);
+        student.setStudentNumber(studentNumber);
         student.setUser(savedUser);
-
         Student savedStudent = this.studentRepository.save(student);
-        Registration savedRegistration = new Registration();
+        LOGGER.info("Student saved successfully with student number: {}", savedStudent.getStudentNumber());
 
+        Registration savedRegistration = new Registration();
         savedRegistration.setStudent(savedStudent);
-        LOGGER.info("Guidance Staff Account Successfully Created! ");
+        LOGGER.info("Student account successfully created for username: {}", username);
+
         return savedRegistration;
     }
 
 
+
     private Registration registerGuidanceStaff(Registration registration) {
 
-        validateUsername(StringUtils.EMPTY, registration.getGuidanceStaff().getUser().getUsername());
-        String username = registration.getGuidanceStaff().getUser().getUsername();
-        String password = registration.getGuidanceStaff().getUser().getPassword();
+        if (registration == null || registration.getGuidanceStaff() == null) {
+            LOGGER.error("Registration or Guidance Staff object is null");
+            throw new IllegalArgumentException("Registration and Guidance Staff information are required");
+        }
 
-        Person savedPerson = this.personRepository.save(registration.getGuidanceStaff().getPerson());
+        User user = registration.getGuidanceStaff().getUser();
+        Person person = registration.getGuidanceStaff().getPerson();
+
+        if (user == null) {
+            LOGGER.error("User not found in registration");
+            throw new UserNotFoundException("User information is required");
+        }
+        if (person == null) {
+            LOGGER.error("Person not found in registration");
+            throw new PersonNotFoundException("Person information is required");
+        }
+
+        validateUsername(StringUtils.EMPTY, user.getUsername());
+        String username = user.getUsername();
+        String password = user.getPassword();
+        String email = person.getEmail();
+
+        User existingUserByUsername = findUserByUsername(username);
+        if (existingUserByUsername != null) {
+            LOGGER.error("Username already exists: {}", username);
+            throw new UsernameExistsException("Username already exists");
+        }
+
+        User existingUserByEmail = this.userRepository.findUserByPersonEmail(email);
+        if (existingUserByEmail != null) {
+            LOGGER.error("Email already exists: {}", email);
+            throw new EmailAlreadyExistException("Email already exists");
+        }
+         validatePassword(password);
+
+        Person savedPerson = this.personRepository.save(person);
+        LOGGER.info("Person saved successfully with ID: {}", savedPerson.getId());
 
         User newUser = new User();
         newUser.setPerson(savedPerson);
@@ -228,20 +313,21 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         newUser.setRole(GUIDANCE_ROLE.name());
         newUser.setAuthorities(Arrays.stream(GUIDANCE_ROLE.getAuthorities()).toList());
         User savedUser = this.userRepository.save(newUser);
+        LOGGER.info("User saved successfully with username: {}", savedUser.getUsername());
 
         GuidanceStaff guidanceStaff = new GuidanceStaff();
         guidanceStaff.setPerson(savedPerson);
         guidanceStaff.setUser(savedUser);
         guidanceStaff.setPositionInRc(registration.getGuidanceStaff().getPositionInRc());
-
-        GuidanceStaff savedGuidanceStaff = guidanceStaffRepository.save(guidanceStaff);
+        GuidanceStaff savedGuidanceStaff = this.guidanceStaffRepository.save(guidanceStaff);
+        LOGGER.info("Guidance Staff saved successfully with ID: {}", savedGuidanceStaff.getId());
 
         Registration savedRegistration = new Registration();
         savedRegistration.setGuidanceStaff(savedGuidanceStaff);
-        LOGGER.info("Student Account Successfully Created! ");
+        LOGGER.info("Guidance Staff account successfully created for username: {}", username);
+
         return savedRegistration;
     }
-
     @Override
     public Map<String, Object> buildLoginResponse(User user) {
         Map<String, Object> response = new HashMap<>();
@@ -249,15 +335,14 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         response.put("role", user.getRole());
         response.put("userId", user.getUserId());
 
-        if ("GUIDANCE_ROLE".equals(user.getRole())) {
+        if (GUIDANCE_ROLE.name().equals(user.getRole())) {
             GuidanceStaff guidanceStaff = guidanceStaffRepository.findByUser(user);
             if (guidanceStaff != null) {
                 response.put("guidanceStaffId", guidanceStaff.getId());
                 LOGGER.info("Guidance Staff ID added to response: {}", guidanceStaff.getId());
             }
         }
-
-        if ("STUDENT_ROLE".equals(user.getRole())) {
+        if (STUDENT_ROLE.name().equals(user.getRole())) {
             Student student = studentRepository.findByUser(user);
             if (student != null) {
                 response.put("studentId", student.getId());
@@ -286,6 +371,11 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             return null;
         }
 
+    }
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 6) {
+            throw new InvalidPasswordException("Password must be at least 6 characters");
+        }
     }
     private String generateUserId(){
         return RandomStringUtils.randomNumeric(10);

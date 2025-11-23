@@ -39,9 +39,10 @@ public interface NotificationService {
 
     List<Notifications> getNotificationByUser(String userId);
 
-    boolean markAsRead(Long notificationID);
+    void markAsRead(String userId);
 
     long getUnreadCount(String userId);
 
+    void clearNotification(String userId);
 
 }
