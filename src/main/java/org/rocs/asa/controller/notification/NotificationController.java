@@ -3,7 +3,7 @@ package org.rocs.asa.controller.notification;
 import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.notification.Notifications;
 import org.rocs.asa.domain.user.User;
-import org.rocs.asa.domain.device.token.request.DeviceTokenRequest;
+import org.rocs.asa.domain.device.token.dto.request.DeviceTokenRequest;
 import org.rocs.asa.exception.domain.FcmTokenNotFoundException;
 import org.rocs.asa.exception.domain.UserNotFoundException;
 import org.rocs.asa.service.device.token.DeviceTokenService;

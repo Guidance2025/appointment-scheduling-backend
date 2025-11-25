@@ -6,6 +6,7 @@ import org.rocs.asa.domain.user.User;
 import org.rocs.asa.repository.person.PersonRepository;
 import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.utils.security.enumeration.Role;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -28,7 +29,7 @@ public class AdminAccountInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PersonRepository personRepository;
     private final BCryptPasswordEncoder passwordEncoder;
-
+    @Autowired
     public AdminAccountInitializer(UserRepository userRepository,
                                    PersonRepository personRepository,
                                    BCryptPasswordEncoder passwordEncoder) {
@@ -48,7 +49,6 @@ public class AdminAccountInitializer implements CommandLineRunner {
 
     @Value("${admin.auto-create:true}")
     private boolean autoCreateAdmin;
-    // paltan nyo nalang email sa email nyo ipasend
 
     @Override
     public void run(String... args) {

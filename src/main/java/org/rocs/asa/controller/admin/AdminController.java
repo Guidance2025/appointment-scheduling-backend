@@ -1,9 +1,10 @@
 package org.rocs.asa.controller.admin;
 
+import jakarta.mail.MessagingException;
 import org.rocs.asa.domain.account.dto.GuidanceStaffDto;
 import org.rocs.asa.domain.account.dto.StudentAccountDto;
 import org.rocs.asa.domain.account.profile.request.AdminProfileDto;
-import org.rocs.asa.domain.student.information.response.StudentInformation;
+import org.rocs.asa.domain.student.information.response.StudentDetailsResponse;
 import org.rocs.asa.domain.guidance.staff.dto.admin.request.UpdateGuidanceStaffRequest;
 import org.rocs.asa.domain.registration.Registration;
 import org.rocs.asa.domain.student.request.UpdateStudentRequest;
@@ -57,7 +58,7 @@ public class AdminController {
      * @return ResponseEntity containing the user object, and Http Status
      */
     @PostMapping("/register")
-    public ResponseEntity<Registration> register(@RequestBody Registration registration){
+    public ResponseEntity<Registration> register(@RequestBody Registration registration) throws MessagingException {
         Registration newUser = this.userService.registerUser(registration);
         return new ResponseEntity<>(newUser, HttpStatus.OK);
     }
@@ -87,9 +88,9 @@ public class AdminController {
      * @return ResponseEntity containing list of all student information, and Http Status
      */
     @GetMapping("/student-information")
-    public ResponseEntity<List<StudentInformation>> getAllStudent(){
-        List<StudentInformation> allStudentInformation = studentInformationService.getAllStudent();
-        return new ResponseEntity<>(allStudentInformation, HttpStatus.OK);
+    public ResponseEntity<List<StudentDetailsResponse>> getAllStudent(){
+        List<StudentDetailsResponse> allStudentDetailResponses = studentInformationService.getAllStudent();
+        return new ResponseEntity<>(allStudentDetailResponses, HttpStatus.OK);
     }
 
     /**

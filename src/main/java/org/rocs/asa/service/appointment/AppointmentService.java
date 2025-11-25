@@ -1,6 +1,7 @@
 package org.rocs.asa.service.appointment;
 
 import org.rocs.asa.domain.appointment.Appointment;
+import org.rocs.asa.domain.appointment.response.BookedSlotsResponse;
 
 import java.util.List;
 import java.util.Map;
@@ -23,4 +24,11 @@ public interface AppointmentService {
     List<Appointment> getAppointmentByGuidanceStaff (Long employeeNumber);
 
     void markAsOnGoingOrIsCompleted();
+
+    List<BookedSlotsResponse> getBookedSlots(String date);
+
+    List<Appointment> findStudentAppointments(Long studentId, String status);
+
+    Appointment studentCreateAppointment(Appointment appointment);
+    Appointment guidanceStaffResponse(Long appointmentId,Map<String,String> data);
 }

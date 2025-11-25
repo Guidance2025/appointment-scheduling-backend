@@ -3,6 +3,7 @@ package org.rocs.asa.exception.handling;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import jakarta.persistence.NoResultException;
 import org.rocs.asa.domain.http.response.HttpResponse;
+import org.rocs.asa.exception.domain.AppointmentAlreadyExistException;
 import org.rocs.asa.exception.domain.EmailNotFoundException;
 import org.rocs.asa.exception.domain.UserNotFoundException;
 import org.rocs.asa.exception.domain.UsernameExistsException;
@@ -14,12 +15,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.MethodNotAllowedException;
 
 import java.io.IOException;
 
 import static org.rocs.asa.exception.constants.ExceptionConstants.*;
-
+@RestControllerAdvice
 public class ExceptionHandling implements ErrorController {
 
     @ExceptionHandler(DisabledException.class)
@@ -71,6 +73,11 @@ public class ExceptionHandling implements ErrorController {
     @ExceptionHandler(UsernameExistsException.class)
     public ResponseEntity<HttpResponse> usernameExistException(NoResultException exception){
         return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(AppointmentAlreadyExistException.class)
+    public ResponseEntity<HttpResponse> appointmentAlreadyExistException (AppointmentAlreadyExistException exception)  {
+        return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
     private ResponseEntity<HttpResponse> createHttpResponse(HttpStatus status, String message){
         return new ResponseEntity<>(new HttpResponse(status.value(),status,status.getReasonPhrase().toUpperCase(), message.toUpperCase()),status);

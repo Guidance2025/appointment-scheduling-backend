@@ -1,6 +1,7 @@
 package org.rocs.asa.controller.counselor;
 
 import org.rocs.asa.domain.account.profile.request.CounselorProfileDto;
+import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.service.profile.counselor.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,4 +30,6 @@ public class CounselorProfileController {
         CounselorProfileDto profile = profileService.getCounselorProfile(employeeNumber);
         return new ResponseEntity<>(profile, HttpStatus.OK);
     }
+
+
 }

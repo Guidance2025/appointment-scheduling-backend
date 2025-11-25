@@ -108,7 +108,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public Registration registerUser(Registration registration) {
+    public Registration registerUser(Registration registration) throws MessagingException {
         if(registration.getStudent() != null){
             return registerStudent(registration);
         }else if(registration.getGuidanceStaff() != null) {
@@ -168,7 +168,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Transactional
-    private Registration registerStudent(Registration registration) {
+    private Registration registerStudent(Registration registration) throws MessagingException {
 
         if (registration == null || registration.getStudent() == null) {
             LOGGER.error("Registration or Student object is null");
@@ -255,14 +255,13 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         Registration savedRegistration = new Registration();
         savedRegistration.setStudent(savedStudent);
+        emailService.sendNewRegisterAccountEmail(email,username,password);
         LOGGER.info("Student account successfully created for username: {}", username);
 
         return savedRegistration;
     }
 
-
-
-    private Registration registerGuidanceStaff(Registration registration) {
+    private Registration registerGuidanceStaff(Registration registration) throws MessagingException {
 
         if (registration == null || registration.getGuidanceStaff() == null) {
             LOGGER.error("Registration or Guidance Staff object is null");
@@ -324,6 +323,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         Registration savedRegistration = new Registration();
         savedRegistration.setGuidanceStaff(savedGuidanceStaff);
+        emailService.sendNewRegisterAccountEmail(email,username,password);
         LOGGER.info("Guidance Staff account successfully created for username: {}", username);
 
         return savedRegistration;
