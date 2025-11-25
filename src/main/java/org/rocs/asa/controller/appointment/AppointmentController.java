@@ -2,7 +2,10 @@ package org.rocs.asa.controller.appointment;
 
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.appointment.Appointment;
+import org.rocs.asa.domain.appointment.response.BookedSlotsResponse;
+import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.service.appointment.AppointmentService;
+import org.rocs.asa.service.guidance.GuidanceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +25,7 @@ import java.util.Map;
 public class AppointmentController {
     private static Logger LOGGER = LoggerFactory.getLogger(AppointmentController.class);
     private AppointmentService appointmentService;
+    private GuidanceService guidanceService;
 
     /**
      * Constructs a new {@code AppointmentController} with the required dependencies.
@@ -32,8 +36,9 @@ public class AppointmentController {
      * @param appointmentService the service layer for managing appointment operations
      */
     @Autowired
-    public AppointmentController(AppointmentService appointmentService) {
+    public AppointmentController(AppointmentService appointmentService, GuidanceService guidanceService) {
         this.appointmentService = appointmentService;
+        this.guidanceService = guidanceService;
     }
 
     /**
@@ -101,5 +106,20 @@ public class AppointmentController {
     public ResponseEntity<List<Appointment>> getAppointmentByGuidanceStaff(@PathVariable Long employeeNumber) {
         List<Appointment> guidanceStaffAppointment = appointmentService.getAppointmentByGuidanceStaff(employeeNumber);
         return ResponseEntity.ok(guidanceStaffAppointment);
+    }
+    @GetMapping("/booked-slots")
+    public ResponseEntity<List<BookedSlotsResponse>> getBookedSlots(@RequestParam String date) {
+            List<BookedSlotsResponse> bookedSlotResponses = appointmentService.getBookedSlots(date);
+            return ResponseEntity.ok(bookedSlotResponses);
+    }
+    @GetMapping("/all")
+    ResponseEntity<List<GuidanceStaff>> findAuthenticatedGuidanceStaff() {
+        List<GuidanceStaff> guidanceStaff = guidanceService.findActiveGuidanceStaff();
+        return ResponseEntity.ok(guidanceStaff);
+    }
+    @PostMapping("/{appointmentId}/guidance/response")
+    public ResponseEntity<Appointment> guidanceResponseToAppointmentRequest(@PathVariable Long appointmentId, @RequestBody Map<String,String> action) {
+        Appointment response = appointmentService.guidanceStaffResponse(appointmentId,action);
+        return ResponseEntity.ok(response);
     }
 }

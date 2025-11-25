@@ -33,7 +33,7 @@ public interface UserService{
      * @param registration is the data transfer object of the user that contains the user credential
      * @return User
      */
-    Registration registerUser(Registration registration);
+    Registration registerUser(Registration registration) throws MessagingException;
 
     /**
      * Initiates password reset process

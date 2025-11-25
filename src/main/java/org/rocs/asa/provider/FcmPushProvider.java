@@ -45,7 +45,7 @@ public class FcmPushProvider {
                 LOGGER.error("  Error Code: {}", e.getErrorCode());
                 LOGGER.error("  Messaging Error Code: {}", e.getMessagingErrorCode());
                 LOGGER.error("  Error Message: {}", e.getMessage());
-                LOGGER.error("  Full Exception: ", e); // This will show the full stack trace
+                LOGGER.error("  Full Exception: ", e);
 
                 if (e.getMessage() != null && e.getMessage().contains("SenderId mismatch")) {
                     LOGGER.error("SENDER_ID_MISMATCH DETECTED!");

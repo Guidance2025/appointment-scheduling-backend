@@ -1,7 +1,7 @@
 package org.rocs.asa.service.student.profile.impl;
 
 import jakarta.transaction.Transactional;
-import org.rocs.asa.domain.student.information.response.StudentInformationDto;
+import org.rocs.asa.domain.student.information.response.StudentInfoResponse;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.Student;
@@ -25,7 +25,7 @@ public class StudentProfileServiceImpl implements StudentProfileService {
         this.studentRepository = studentRepository;
     }
     @Override
-    public StudentInformationDto getPersonByStudentNumber(String studentNumber) {
+    public StudentInfoResponse getPersonByStudentNumber(String studentNumber) {
         if (studentNumber == null || studentNumber.isBlank()) {
             throw new StudentNotFoundException("Student number is blank");
         }
@@ -43,7 +43,7 @@ public class StudentProfileServiceImpl implements StudentProfileService {
             throw new StudentNotFoundException("Person details not found for this student");
         }
 
-        return new StudentInformationDto(student.getStudentNumber(), person.getFirstName(), person.getLastName());
+        return new StudentInfoResponse(student.getStudentNumber(), person.getFirstName(), person.getLastName());
     }
 
     @Override

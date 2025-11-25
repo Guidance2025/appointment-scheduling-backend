@@ -2,6 +2,7 @@ package org.rocs.asa.service.appointment.helper;
 
 import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
+import org.rocs.asa.domain.student.Student;
 
 import java.time.format.DateTimeFormatter;
 
@@ -17,6 +18,20 @@ public class AppointmentMessageBuilder {
         String endTime = appointment.getEndDate().format(TIME_FORMAT);
 
         return String.format("Appointment with %s on %s (%s - %s)", counselorName, date, startTime, endTime);
+    }
+
+    public static String forGuidance(Student student, Appointment appointment) {
+        String studentName = student.getPerson().getFirstName() + " " + student.getPerson().getLastName();
+        String appointmentType = appointment.getAppointmentType();
+        String date = appointment.getScheduledDate().format(DATE_FORMAT);
+        String startTime = appointment.getScheduledDate().format(TIME_FORMAT);
+        String endTime = appointment.getEndDate().format(TIME_FORMAT);
+
+        return String.format(
+                "%s requested a %s appointment on %s from %s to %s.",
+                studentName, appointmentType, date, startTime, endTime
+        );
+
     }
 
     public static String forGuidanceResponse(String studentName, String action, Appointment appointment) {

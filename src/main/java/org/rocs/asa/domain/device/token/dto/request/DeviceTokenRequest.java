@@ -1,4 +1,4 @@
-package org.rocs.asa.domain.device.token.request;
+package org.rocs.asa.domain.device.token.dto.request;
 
 import lombok.Data;
 

@@ -8,5 +8,4 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface GuidanceStaffRepository extends JpaRepository<GuidanceStaff,Long> {
     GuidanceStaff findByUser(User user);
-    GuidanceStaff findEmployeeByUserId(Long id);
 }

@@ -13,6 +13,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class GuidanceServiceImpl implements GuidanceService  {
     private static Logger LOGGER = LoggerFactory.getLogger(GuidanceService.class);
@@ -24,7 +27,7 @@ public class GuidanceServiceImpl implements GuidanceService  {
         this.userService = userService;
     }
 
-    public GuidanceStaff findGuidanceStaff() {
+    public GuidanceStaff findAuthenticatedGuidanceStaff() {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
@@ -45,6 +48,13 @@ public class GuidanceServiceImpl implements GuidanceService  {
     @Override
     public GuidanceStaff findByUser(User user) {
         return guidanceStaffRepository.findByUser(user);
+    }
+
+    @Override
+    public List<GuidanceStaff> findActiveGuidanceStaff() {
+        return guidanceStaffRepository.findAll().stream()
+                .filter(staff -> staff.getUser() != null && staff.getUser().isActive())
+                .collect(Collectors.toList());
     }
 
 }

@@ -1,6 +1,6 @@
 package org.rocs.asa.service.student.inforamation.impl;
 
-import org.rocs.asa.domain.student.information.response.StudentInformation;
+import org.rocs.asa.domain.student.information.response.StudentDetailsResponse;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.service.student.inforamation.StudentInformationService;
@@ -18,11 +18,11 @@ public class StudentInformationServiceImpl implements StudentInformationService 
     }
 
     @Override
-    public List<StudentInformation> getAllStudent() {
+    public List<StudentDetailsResponse> getAllStudent() {
         List<Student> student = studentRepository.findAll();
         return student.stream()
                 .map(students-> {
-                    StudentInformation info = new StudentInformation();
+                    StudentDetailsResponse info = new StudentDetailsResponse();
                     info.setStudentNumber(students.getStudentNumber());
                     info.setPerson(students.getPerson());
                     info.setSection(students.getSection());

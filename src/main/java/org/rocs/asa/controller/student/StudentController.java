@@ -1,13 +1,17 @@
 package org.rocs.asa.controller.student;
 
 import jakarta.validation.Valid;
-import org.rocs.asa.domain.student.information.response.StudentInformationDto;
+import org.rocs.asa.domain.appointment.Appointment;
+import org.rocs.asa.domain.student.information.response.StudentInfoResponse;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.service.appointment.AppointmentService;
 import org.rocs.asa.service.student.profile.impl.StudentProfileServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * {@code StudentController} handles all student profile operations
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class StudentController {
 
     private StudentProfileServiceImpl studentService;
+    private AppointmentService appointmentService;
 
     /**
      * Constructs a new {@code StudentController} with the required dependencies.
@@ -27,8 +32,9 @@ public class StudentController {
      * @param studentService the service layer for managing student operations
      */
     @Autowired
-    public StudentController(StudentProfileServiceImpl studentService) {
+    public StudentController(StudentProfileServiceImpl studentService, AppointmentService appointmentService) {
         this.studentService = studentService;
+        this.appointmentService = appointmentService;
     }
 
     /**
@@ -48,8 +54,20 @@ public class StudentController {
      * @return ResponseEntity containing the student information details, and Http Status
      */
     @GetMapping("/findBy/{studentNumber}")
-    public ResponseEntity<StudentInformationDto> getStudentByStudentNumber(@PathVariable String studentNumber) {
-        StudentInformationDto studentInformation = studentService.getPersonByStudentNumber(studentNumber);
+    public ResponseEntity<StudentInfoResponse> getStudentByStudentNumber(@PathVariable String studentNumber) {
+        StudentInfoResponse studentInformation = studentService.getPersonByStudentNumber(studentNumber);
         return new ResponseEntity<>(studentInformation, HttpStatus.OK);
     }
+    @GetMapping("/appointment/{studentId}/{status}")
+    public ResponseEntity<List<Appointment>> getStudentAppointment (@PathVariable Long studentId, @PathVariable String status) {
+        List<Appointment> studentAppointments = appointmentService.findStudentAppointments(studentId,status);
+        return ResponseEntity.ok(studentAppointments);
+    }
+
+    @PostMapping("/create-appointment")
+    public ResponseEntity<Appointment> studentSetAppointment (@RequestBody Appointment appointment) {
+        Appointment setAppointment = appointmentService.studentCreateAppointment(appointment);
+        return new ResponseEntity<>(setAppointment, HttpStatus.OK);
+    }
+
 }

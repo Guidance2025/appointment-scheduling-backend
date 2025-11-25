@@ -26,7 +26,6 @@ public class Appointment {
 
     @ManyToOne
     @JoinColumn(name = "employee_number")
-    @JsonIgnore
     private GuidanceStaff guidanceStaff;
 
     @OneToOne
