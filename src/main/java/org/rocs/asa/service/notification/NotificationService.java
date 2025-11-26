@@ -1,5 +1,6 @@
 package org.rocs.asa.service.notification;
 
+import com.google.cloud.storage.Notification;
 import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.notification.Notifications;
@@ -40,6 +41,8 @@ public interface NotificationService {
     List<Notifications> getNotificationByUser(String userId);
 
     void markAsRead(String userId);
+
+    List<Notifications> markAsReadMobile(Long notificationId);
 
     long getUnreadCount(String userId);
 

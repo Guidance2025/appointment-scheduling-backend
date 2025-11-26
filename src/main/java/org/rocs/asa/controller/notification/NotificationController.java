@@ -117,4 +117,10 @@ public class NotificationController {
         notificationService.clearNotification(userId);
         return new ResponseEntity<>("Notification Cleared Successfully ", HttpStatus.OK) ;
     }
+    @PatchMapping("/markAsRead/mobile/{notificationId}")
+    public ResponseEntity<List<Notifications>> markMobileAsRead (@PathVariable Long notificationId) {
+            List<Notifications> mobileNotification = notificationService.markAsReadMobile(notificationId);
+            return new ResponseEntity<>(mobileNotification,HttpStatus.OK);
+    }
+
 }

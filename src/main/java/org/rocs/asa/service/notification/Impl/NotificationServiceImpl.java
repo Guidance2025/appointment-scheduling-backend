@@ -105,7 +105,7 @@ public class NotificationServiceImpl implements NotificationService {
             LOGGER.info("User Not Found");
             throw new UserNotFoundException("User not Found");
         }
-        return notificationRepository.findNotificationsByUser_UserId(userId);
+        return notificationRepository.findNotificationsByUser_UserIdOrderByCreatedAtDesc(userId);
     }
 
     @Override
@@ -120,6 +120,17 @@ public class NotificationServiceImpl implements NotificationService {
         LOGGER.info("Mark as Read Successfully");
     }
 
+    @Override
+    public List<Notifications> markAsReadMobile(Long notificationId) {
+        List<Notifications> notificationsList = notificationRepository.findByNotificationId(notificationId);
+
+        for(Notifications notifications : notificationsList) {
+            notifications.setIsRead(1);
+            notifications.setUpdatedAt(LocalDateTime.now());
+        }
+         LOGGER.info("Mobile Mark as Read Successfully");
+         return notificationRepository.saveAll(notificationsList);
+    }
     @Override
     public long getUnreadCount(String userId) {
          return notificationRepository.countByUser_UserIdAndIsRead(userId, 0);
