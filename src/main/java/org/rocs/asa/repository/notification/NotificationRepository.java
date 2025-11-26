@@ -14,5 +14,6 @@ public interface NotificationRepository extends JpaRepository<Notifications,Long
     List<Notifications> findActiveNotificationByUserId(@Param("userId") String userId);
     List<Notifications> findNotificationsByUser_UserId(String userId);
     Long countByUser_UserIdAndIsRead(String userId, int isRead);
-
+    List<Notifications> findByNotificationId(Long notificationId);
+    List<Notifications> findNotificationsByUser_UserIdOrderByCreatedAtDesc(String userId);
 }
