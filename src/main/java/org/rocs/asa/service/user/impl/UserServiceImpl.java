@@ -296,7 +296,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             LOGGER.error("Email already exists: {}", email);
             throw new EmailAlreadyExistException("Email already exists");
         }
-         validatePassword(password);
+        validatePassword(password);
 
         Person savedPerson = this.personRepository.save(person);
         LOGGER.info("Person saved successfully with ID: {}", savedPerson.getId());
