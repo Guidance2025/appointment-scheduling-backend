@@ -1,10 +1,13 @@
 package org.rocs.asa.service.student.profile.impl;
 
+import com.google.api.gax.rpc.NotFoundException;
 import jakarta.transaction.Transactional;
 import org.rocs.asa.domain.student.information.response.StudentInfoResponse;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.domain.student.request.UpdateStudentProfileRequest;
+import org.rocs.asa.domain.student.request.UpdateStudentRequest;
 import org.rocs.asa.exception.domain.EmptyFieldException;
 import org.rocs.asa.exception.domain.StudentNotFoundException;
 import org.rocs.asa.exception.domain.StudentNumberAlreadyExistException;
@@ -45,6 +48,43 @@ public class StudentProfileServiceImpl implements StudentProfileService {
 
         return new StudentInfoResponse(student.getStudentNumber(), person.getFirstName(), person.getLastName());
     }
+
+    @Override
+    public Student getStudentProfile(Long id) {
+        Student student = studentRepository.findById(id).orElseThrow(()
+                -> new StudentNotFoundException("Student does not exist"));
+
+        if (student.getPerson() == null) {
+            LOGGER.info("Person Details  is required");
+            throw new EmptyFieldException("Person Details  is required");
+        }
+        if (student.getSection() == null) {
+            LOGGER.info("Section is required");
+            throw new EmptyFieldException("Section is required");
+        }
+        return student;
+    }
+
+    @Override
+    public Student updateStudentProfile(Long id , UpdateStudentProfileRequest request) {
+        Student student = studentRepository.findById(id).orElseThrow(()
+                -> new StudentNotFoundException("Student not found"));
+        Person person = student.getPerson();
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            person.setEmail(request.getEmail());
+        }
+
+        if (request.getContactNumber() != null && !request.getContactNumber().trim().isEmpty()) {
+            person.setContactNumber(request.getContactNumber());
+        }
+
+        if (request.getAddress() != null && !request.getAddress().trim().isEmpty()) {
+            person.setAddress(request.getAddress());
+        }
+
+        return studentRepository.save(student);
+    }
+
 
     @Override
     @Transactional

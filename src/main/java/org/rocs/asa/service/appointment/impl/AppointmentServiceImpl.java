@@ -91,14 +91,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 );
 
         for (Appointment appointment : staffAppointments) {
-            if (isTimeConflict(
-                    appointment.getScheduledDate(),
-                    appointment.getEndDate(),
-                    request.getScheduledDate(),
-                    request.getEndDate()
-            )) {
-                LOGGER.info("Guidance staff has an appointment for this time");
-                throw new AppointmentAlreadyExistException("Guidance Staff has an appointment for this time");
+            if (isTimeConflict(appointment.getScheduledDate(), appointment.getEndDate(), request.getScheduledDate(), request.getEndDate())) {
+                LOGGER.info("Student has an appointment for this time");
+                throw new AppointmentAlreadyExistException("Student has an appointment for this time");
             }
         }
 
@@ -142,9 +137,26 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new IllegalArgumentException("Guidance Staff ID is required");
         }
 
+        LocalDateTime startOfDay = appointment.getScheduledDate().toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1).minusSeconds(1);
+
         GuidanceStaff guidanceStaff = guidanceStaffRepository.findById(
                 appointment.getGuidanceStaff().getId()
         ).orElseThrow(() -> new GuidanceStaffNotFoundException("Guidance Staff does not exist"));
+
+          List<Appointment> staffAppointment = appointmentRepository.findByGuidanceStaff_IdAndStatusInAndScheduledDateBetween(
+                  appointment.getGuidanceStaff().getId(),
+                  List.of(AppointmentStatus.PENDING.name(),AppointmentStatus.SCHEDULED.name(),AppointmentStatus.ONGOING.name()),
+                  startOfDay,
+                  endOfDay
+          );
+
+          for(Appointment appointmentList : staffAppointment) {
+              if (isTimeConflict(appointment.getScheduledDate(), appointment.getEndDate(), appointmentList.getScheduledDate(), appointmentList.getEndDate())) {
+                  LOGGER.info("Guidance staff has an appointment for this time");
+                  throw new AppointmentAlreadyExistException("Guidance Staff has an appointment for this time");
+              }
+          }
 
         Appointment newAppointment = new Appointment();
         newAppointment.setStudent(student);
@@ -290,6 +302,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public List<Appointment> getAppointmentByGuidanceStaff(Long employeeNumber) {
         return appointmentRepository.findByGuidanceStaff_Id(employeeNumber);
+    }
+
+    @Override
+    public List<Appointment> getAppointmentByStudent(Long id) {
+        return appointmentRepository.findByStudent_Id(id);
     }
 
     @Override

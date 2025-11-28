@@ -58,4 +58,11 @@ public class AppointmentScheduler {
             LOGGER.error("Failed to update appointment statuses: {}", e.getMessage(), e);
         }
     }
+
+    @Scheduled(fixedRate = 100_000)
+    public void notifyStudent30MinutesBeforeAppointment() {
+       /// //
+    }
+
+
 }

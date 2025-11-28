@@ -23,6 +23,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      */
     boolean existsByStudentIdAndStatusIn(Long studentId, List<String> status);
 
+    List<Appointment> findByStudent_Id(Long studentId);
+
     /**
      * Gets all appointments handled by a guidance staff.
      *
@@ -58,7 +60,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
      */
     List<Appointment> findByGuidanceStaff_IdAndScheduledDateBetween(
             Long id, LocalDateTime scheduledDate, LocalDateTime endDate);
-
     /**
      * Checks if a student has an appointment within a date range.
      *

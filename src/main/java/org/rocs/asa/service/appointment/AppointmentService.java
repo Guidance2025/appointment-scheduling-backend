@@ -23,6 +23,8 @@ public interface AppointmentService {
 
     List<Appointment> getAppointmentByGuidanceStaff (Long employeeNumber);
 
+    List<Appointment> getAppointmentByStudent(Long id);
+
     void markAsOnGoingOrIsCompleted();
 
     List<BookedSlotsResponse> getBookedSlots(String date);
@@ -30,5 +32,7 @@ public interface AppointmentService {
     List<Appointment> findStudentAppointments(Long studentId, String status);
 
     Appointment studentCreateAppointment(Appointment appointment);
+
     Appointment guidanceStaffResponse(Long appointmentId,Map<String,String> data);
+
 }

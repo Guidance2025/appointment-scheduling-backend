@@ -122,4 +122,5 @@ public class AppointmentController {
         Appointment response = appointmentService.guidanceStaffResponse(appointmentId,action);
         return ResponseEntity.ok(response);
     }
+
 }

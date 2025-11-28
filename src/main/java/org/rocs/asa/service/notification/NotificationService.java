@@ -38,6 +38,7 @@ public interface NotificationService {
     Notifications saveNotification(User user, Appointment appointment, String message, String actionType);
 
 
+
     List<Notifications> getNotificationByUser(String userId);
 
     void markAsRead(String userId);
