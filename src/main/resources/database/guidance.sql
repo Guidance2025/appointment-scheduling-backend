@@ -367,7 +367,7 @@ values (9, 'Guidance Facilitator');
 insert into tbl_guidance_staff (person_id, position_in_rc)
 values (10, 'Guidance Facilitator');
 
---INSER COUNSELING SESSION TABLE
+--INSERT COUNSELING SESSION TABLE
 insert into tbl_counseling_session (student_id, employee_number, session_notes, session_status, session_type, session_date)
 values (2, 1, 'Discussed anxiety management.', 'Completed', 'Individual Counseling', to_timestamp('2025-07-01 10:00:00.00', 'yyyy-mm-dd hh24:mi:ss:ff'));
 insert into tbl_counseling_session (student_id, employee_number, session_notes, session_status, session_type, session_date)
