@@ -1,4 +1,3 @@
-// src/main/java/org/rocs/asa/controller/post/PostController.java
 package org.rocs.asa.controller.post;
 
 import jakarta.validation.Valid;
@@ -40,6 +39,12 @@ public class PostController {
     public ResponseEntity<Map<String, Object>> getFeed(@RequestParam(defaultValue = "20") int limit) {
         Map<String, Object> feed = postService.getFeed(limit);
         return ResponseEntity.ok(feed);
+    }
+
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> delete(@PathVariable Long postId) {
+        postService.deletePost(postId);
+        return ResponseEntity.noContent().build();
     }
 
 }

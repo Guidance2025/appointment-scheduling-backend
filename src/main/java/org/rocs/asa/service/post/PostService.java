@@ -1,4 +1,3 @@
-// src/main/java/org/rocs/asa/service/post/PostService.java
 package org.rocs.asa.service.post;
 
 import org.rocs.asa.domain.post.Post;
@@ -12,4 +11,6 @@ public interface PostService {
     List<Map<String, Object>> getAllPosts(int limit);
     Map<String, Object> getQuoteOfTheDay();
     Map<String, Object> getFeed(int limit);
+
+    void deletePost(Long postId);
 }

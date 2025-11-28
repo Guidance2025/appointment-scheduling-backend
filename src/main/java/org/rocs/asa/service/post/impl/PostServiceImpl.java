@@ -1,6 +1,6 @@
-// src/main/java/org/rocs/asa/service/post/impl/PostServiceImpl.java
 package org.rocs.asa.service.post.impl;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.rocs.asa.domain.category.Category;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.post.Post;
@@ -53,7 +53,6 @@ public class PostServiceImpl implements PostService {
         String rawName = (request.getCategoryName() == null) ? "" : request.getCategoryName().trim();
         if (rawName.isEmpty()) throw new IllegalArgumentException("Category name is required");
 
-        // Normalize to canonical names for consistent routing
         String normalized = rawName.replaceAll("\\s+", " ").trim();
         if (normalized.equalsIgnoreCase("quote") || normalized.equalsIgnoreCase("qoute")) {
             normalized = "Quote";
@@ -64,14 +63,48 @@ public class PostServiceImpl implements PostService {
         } else {
             normalized = normalized.substring(0, 1).toUpperCase() + normalized.substring(1);
         }
-
         String capped64 = normalized.length() > 64 ? normalized.substring(0, 64) : normalized;
+
+        if (content.length() > 500) content = content.substring(0, 500);
+
+        Integer exists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) " +
+                        "FROM tbl_posts p " +
+                        "JOIN tbl_category c ON p.category_id = c.category_id " +
+                        "WHERE p.employee_number = ? " +
+                        "  AND NVL(p.section_id, -1) = NVL(?, -1) " +
+                        "  AND p.post_content = ? " +
+                        "  AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
+                        "  AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND",
+                Integer.class,
+                employeeNumber, request.getSectionId(), content, capped64
+        );
+
+        if (exists != null && exists > 0) {
+            LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={}, content='{}')",
+                    employeeNumber, capped64, request.getSectionId(), content);
+
+            // Optionally return the latest matching post so caller still gets something
+            List<Long> ids = jdbcTemplate.queryForList(
+                    "SELECT p.post_id " +
+                            "FROM tbl_posts p " +
+                            "JOIN tbl_category c ON p.category_id = c.category_id " +
+                            "WHERE p.employee_number = ? " +
+                            "  AND NVL(p.section_id, -1) = NVL(?, -1) " +
+                            "  AND p.post_content = ? " +
+                            "  AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
+                            "ORDER BY p.posted_date DESC FETCH FIRST 1 ROW ONLY",
+                    Long.class,
+                    employeeNumber, request.getSectionId(), content, capped64
+            );
+            if (!ids.isEmpty()) {
+                return postRepository.findById(ids.get(0)).orElse(null);
+            }
+        }
 
         Category toSave = new Category();
         toSave.setCategoryName(capped64);
-        Category savedCategory = categoryRepository.save(toSave); // always inserts a new category row
-
-        if (content.length() > 500) content = content.substring(0, 500);
+        Category savedCategory = categoryRepository.save(toSave);
 
         Post post = new Post();
         post.setEmployeeNumber(employeeNumber);
@@ -89,22 +122,26 @@ public class PostServiceImpl implements PostService {
     @Override
     public List<Map<String, Object>> getAllPosts(int limit) {
         String sql =
-                "SELECT * FROM (" +
-                        "  SELECT " +
-                        "    p.post_id, " +
-                        "    p.post_content, " +
-                        "    p.posted_date, " +
-                        "    c.category_name, " +
-                        "    s.section_name, " +
-                        "    s.organization, " +
-                        "    TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by " +
-                        "  FROM tbl_posts p " +
-                        "  JOIN tbl_category c ON p.category_id = c.category_id " +
-                        "  LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
-                        "  LEFT JOIN tbl_guidance_staff gs ON p.employee_number = gs.employee_number " +
-                        "  LEFT JOIN tbl_person per ON gs.person_id = per.id " +
-                        "  WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " + // exclude Quote from feed
-                        "  ORDER BY p.posted_date DESC " +
+                "SELECT * FROM ( " +
+                        "  SELECT t.* FROM ( " +
+                        "    SELECT " +
+                        "      p.post_id, " +
+                        "      p.post_content, " +
+                        "      p.posted_date, " +
+                        "      c.category_name, " +
+                        "      s.section_name, " +
+                        "      s.organization, " +
+                        "      TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by, " +
+                        "      ROW_NUMBER() OVER (PARTITION BY p.post_id ORDER BY p.posted_date DESC) AS rn " +
+                        "    FROM tbl_posts p " +
+                        "    JOIN tbl_category c ON p.category_id = c.category_id " +
+                        "    LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
+                        "    LEFT JOIN tbl_guidance_staff gs ON p.employee_number = gs.employee_number " +
+                        "    LEFT JOIN tbl_person per ON gs.person_id = per.id " +
+                        "    WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
+                        "  ) t " +
+                        "  WHERE t.rn = 1 " +
+                        "  ORDER BY t.posted_date DESC " +
                         ") WHERE ROWNUM <= ?";
 
         return jdbcTemplate.queryForList(sql, limit);
@@ -112,7 +149,6 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Map<String, Object> getQuoteOfTheDay() {
-        // Try today's quote WITH section data
         String todaySql =
                 "SELECT p.post_id, p.post_content, p.posted_date, " +
                         "       s.section_name, s.organization " +
@@ -126,7 +162,6 @@ public class PostServiceImpl implements PostService {
         try {
             return jdbcTemplate.queryForMap(todaySql);
         } catch (EmptyResultDataAccessException e) {
-            // Fallback: latest Quote overall WITH section data
             String latestSql =
                     "SELECT p.post_id, p.post_content, p.posted_date, " +
                             "       s.section_name, s.organization " +
@@ -147,22 +182,26 @@ public class PostServiceImpl implements PostService {
     @Override
     public Map<String, Object> getFeed(int limit) {
         String postsSql =
-                "SELECT * FROM (" +
-                        "  SELECT " +
-                        "    p.post_id, " +
-                        "    p.post_content, " +
-                        "    p.posted_date, " +
-                        "    c.category_name, " +
-                        "    s.section_name, " +
-                        "    s.organization, " +
-                        "    TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by " +
-                        "  FROM tbl_posts p " +
-                        "  JOIN tbl_category c ON p.category_id = c.category_id " +
-                        "  LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
-                        "  LEFT JOIN tbl_guidance_staff gs ON p.employee_number = gs.employee_number " +
-                        "  LEFT JOIN tbl_person per ON gs.person_id = per.id " +
-                        "  WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
-                        "  ORDER BY p.posted_date DESC " +
+                "SELECT * FROM ( " +
+                        "  SELECT t.* FROM ( " +
+                        "    SELECT " +
+                        "      p.post_id, " +
+                        "      p.post_content, " +
+                        "      p.posted_date, " +
+                        "      c.category_name, " +
+                        "      s.section_name, " +
+                        "      s.organization, " +
+                        "      TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by, " +
+                        "      ROW_NUMBER() OVER (PARTITION BY p.post_id ORDER BY p.posted_date DESC) AS rn " +
+                        "    FROM tbl_posts p " +
+                        "    JOIN tbl_category c ON p.category_id = c.category_id " +
+                        "    LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
+                        "    LEFT JOIN tbl_guidance_staff gs ON p.employee_number = gs.employee_number " +
+                        "    LEFT JOIN tbl_person per ON gs.person_id = per.id " +
+                        "    WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
+                        "  ) t " +
+                        "  WHERE t.rn = 1 " +           // one row per post_id
+                        "  ORDER BY t.posted_date DESC " +
                         ") WHERE ROWNUM <= ?";
 
         String quoteTodaySql =
@@ -196,10 +235,20 @@ public class PostServiceImpl implements PostService {
                 Map<String, Object> quote = jdbcTemplate.queryForMap(quoteLatestSql);
                 payload.put("quote", quote);
             } catch (EmptyResultDataAccessException ex) {
-                payload.put("quote", new HashMap<>()); // no quote at all
+                payload.put("quote", new HashMap<>());
             }
         }
 
         return payload;
+    }
+
+    @Override
+    @Transactional
+    public void deletePost(Long postId) {
+        if (!postRepository.existsById(postId)) {
+            throw new EntityNotFoundException("Post not found: " + postId);
+        }
+        postRepository.deleteById(postId);
+        LOGGER.info("Post deleted id={}", postId);
     }
 }

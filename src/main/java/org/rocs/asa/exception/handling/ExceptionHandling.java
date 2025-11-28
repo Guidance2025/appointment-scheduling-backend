@@ -3,11 +3,7 @@ package org.rocs.asa.exception.handling;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import jakarta.persistence.NoResultException;
 import org.rocs.asa.domain.http.response.HttpResponse;
-import org.rocs.asa.exception.domain.AppointmentAlreadyExistException;
-import org.rocs.asa.exception.domain.EmailNotFoundException;
-import org.rocs.asa.exception.domain.PostNotFoundException;
-import org.rocs.asa.exception.domain.UserNotFoundException;
-import org.rocs.asa.exception.domain.UsernameExistsException;
+import org.rocs.asa.exception.domain.*;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.MethodNotAllowedException;
 
 import java.io.IOException;
+import java.util.Map;
 
 import static org.rocs.asa.exception.constants.ExceptionConstants.*;
 @RestControllerAdvice
@@ -86,5 +83,22 @@ public class ExceptionHandling implements ErrorController {
     @ExceptionHandler(PostNotFoundException.class)
     public ResponseEntity<HttpResponse> postNotFoundException(PostNotFoundException exception) {
         return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<?> notFound(NotFoundException ex) {
+        return ResponseEntity.status(404).body(Map.of("error", ex.getMessage()));
+    }
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<?> conflict(ConflictException ex) {
+        return ResponseEntity.status(409).body(Map.of("error", ex.getMessage()));
+    }
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<?> badRequest(BadRequestException ex) {
+        return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+    }
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> generic(Exception ex) {
+        ex.printStackTrace();
+        return ResponseEntity.status(500).body(Map.of("error", "Internal Server Error"));
     }
 }
