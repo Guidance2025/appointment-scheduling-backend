@@ -25,5 +25,10 @@ public class GuidanceStaff {
     @JoinColumn(name = "login_id")
     private User user;
 
-
+    public Long getEmployeeNumber() {
+        return this.id;
+    }
+    public void setEmployeeNumber(Long employeeNumber) {
+        this.id = employeeNumber;
+    }
 }

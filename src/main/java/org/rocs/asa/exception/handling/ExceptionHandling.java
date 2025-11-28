@@ -5,6 +5,7 @@ import jakarta.persistence.NoResultException;
 import org.rocs.asa.domain.http.response.HttpResponse;
 import org.rocs.asa.exception.domain.AppointmentAlreadyExistException;
 import org.rocs.asa.exception.domain.EmailNotFoundException;
+import org.rocs.asa.exception.domain.PostNotFoundException;
 import org.rocs.asa.exception.domain.UserNotFoundException;
 import org.rocs.asa.exception.domain.UsernameExistsException;
 import org.springframework.boot.web.servlet.error.ErrorController;
@@ -81,5 +82,9 @@ public class ExceptionHandling implements ErrorController {
     }
     private ResponseEntity<HttpResponse> createHttpResponse(HttpStatus status, String message){
         return new ResponseEntity<>(new HttpResponse(status.value(),status,status.getReasonPhrase().toUpperCase(), message.toUpperCase()),status);
+    }
+    @ExceptionHandler(PostNotFoundException.class)
+    public ResponseEntity<HttpResponse> postNotFoundException(PostNotFoundException exception) {
+        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 }
