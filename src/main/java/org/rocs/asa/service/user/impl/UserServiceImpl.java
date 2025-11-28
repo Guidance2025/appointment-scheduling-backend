@@ -1,7 +1,7 @@
 package org.rocs.asa.service.user.impl;
 
 import jakarta.mail.MessagingException;
-import jakarta.transaction.Transactional;
+//import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
@@ -32,6 +32,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -296,7 +297,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             LOGGER.error("Email already exists: {}", email);
             throw new EmailAlreadyExistException("Email already exists");
         }
-         validatePassword(password);
+        validatePassword(password);
 
         Person savedPerson = this.personRepository.save(person);
         LOGGER.info("Person saved successfully with ID: {}", savedPerson.getId());
