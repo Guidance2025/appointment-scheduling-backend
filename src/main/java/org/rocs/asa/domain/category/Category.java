@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 
 import lombok.Getter; import lombok.Setter;
 
-@Entity
 @Getter @Setter
+@Entity
 @Table(name = "tbl_category")
 public class Category {
 
