@@ -9,8 +9,11 @@ import org.rocs.asa.domain.user.User;
 
 import java.io.Serializable;
 
+import lombok.Getter; import lombok.Setter;
+
 @Entity
 @Data
+//@Getter @Setter
 @Table(name = "tbl_student")
 public class Student implements Serializable {
 

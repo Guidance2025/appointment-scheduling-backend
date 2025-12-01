@@ -10,8 +10,11 @@ import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import java.io.Serializable;
 import java.util.Date;
 
+import lombok.Getter; import lombok.Setter;
+
 @Entity
 @Data
+@Getter @Setter
 @Table(name = "tbl_person")
 public class Person implements Serializable {
     @Id
