@@ -1,4 +1,4 @@
-package org.rocs.asa.domain.guidance.staff.dto.admin.request;
+package org.rocs.asa.domain.guidance.staff.request;
 
 import lombok.Data;
 

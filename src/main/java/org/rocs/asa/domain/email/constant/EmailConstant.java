@@ -34,6 +34,8 @@ public class EmailConstant {
      * This constant will be used as the subject for emails sent to users when a new account is created.
      */
     public static final String EMAIL_STAFF_NEW_REGISTRATION_SUBJECT = "New Account Created - GABAY";
+
+    public static final String EMAIL_STUDENT_NEW_PASSWORD_SUBJECT = "Password Changed - GABAY";
     /**
      * Simple Mail Transfer Protocol server address for Gmail which will handle sending emails.
      */

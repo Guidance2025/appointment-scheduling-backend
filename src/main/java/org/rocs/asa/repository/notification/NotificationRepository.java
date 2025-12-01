@@ -16,4 +16,15 @@ public interface NotificationRepository extends JpaRepository<Notifications,Long
     Long countByUser_UserIdAndIsRead(String userId, int isRead);
     List<Notifications> findByNotificationId(Long notificationId);
     List<Notifications> findNotificationsByUser_UserIdOrderByCreatedAtDesc(String userId);
+    /**
+     * Finds notifications by appointment ID and action type.
+     *
+     * @param appointmentId the appointment ID
+     * @param actionType the action type
+     * @return list of matching notifications
+     */
+    List<Notifications> findByAppointment_AppointmentIdAndActionType(
+            Long appointmentId,
+            String actionType
+    );
 }

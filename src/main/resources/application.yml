@@ -12,16 +12,15 @@ spring:
     password: Changeme0
     driver-class-name: oracle.jdbc.OracleDriver
   jpa:
-      show-sql: true
-      hibernate:
-        ddl-auto: update
+    show-sql: true
+    hibernate:
+      ddl-auto: update
 jwt:
   secret : 'thebigbrownfoxjumpsoverthelazydog'
 
 firebase:
   project-id: appointment-notification-cc54d
   service-account-file: firebase-service-account.json
-
 
 server:
   address: 0.0.0.0
@@ -38,3 +37,6 @@ admin:
     password: 123123
     email: admin@guidance.edu
   auto-create: true
+
+appointment:
+  max-pending-per-student: 1

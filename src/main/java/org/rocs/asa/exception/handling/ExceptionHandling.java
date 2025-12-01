@@ -81,6 +81,14 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<HttpResponse> appointmentAlreadyExistException (AppointmentAlreadyExistException exception)  {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<HttpResponse> rateLimitExceeded (RateLimitExceededException exception)  {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+    @ExceptionHandler(EmailAlreadyExistException.class)
+    public ResponseEntity<HttpResponse> emailAlreadyExist (EmailAlreadyExistException exception)  {
+        return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
     private ResponseEntity<HttpResponse> createHttpResponse(HttpStatus status, String message){
         return new ResponseEntity<>(new HttpResponse(status.value(),status,status.getReasonPhrase().toUpperCase(), message.toUpperCase()),status);
     }

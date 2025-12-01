@@ -8,24 +8,35 @@ import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.student.request.UpdateStudentProfileRequest;
 import org.rocs.asa.domain.student.request.UpdateStudentRequest;
+import org.rocs.asa.domain.user.User;
+import org.rocs.asa.exception.domain.EmailAlreadyExistException;
 import org.rocs.asa.exception.domain.EmptyFieldException;
 import org.rocs.asa.exception.domain.StudentNotFoundException;
 import org.rocs.asa.exception.domain.StudentNumberAlreadyExistException;
+import org.rocs.asa.repository.person.PersonRepository;
 import org.rocs.asa.repository.student.StudentRepository;
+import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.student.profile.StudentProfileService;
+import org.rocs.asa.service.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+
 @Service
 public class StudentProfileServiceImpl implements StudentProfileService {
     private static Logger LOGGER = LoggerFactory.getLogger(StudentProfileServiceImpl.class);
 
     private StudentRepository studentRepository;
-
+    private UserService userService;
+    private PersonRepository personRepository;
     @Autowired
-    public StudentProfileServiceImpl(StudentRepository studentRepository) {
+    public StudentProfileServiceImpl(StudentRepository studentRepository,UserService userService,PersonRepository personRepository) {
         this.studentRepository = studentRepository;
+        this.userService = userService;
+        this.personRepository = personRepository;
     }
     @Override
     public StudentInfoResponse getPersonByStudentNumber(String studentNumber) {
@@ -66,12 +77,25 @@ public class StudentProfileServiceImpl implements StudentProfileService {
     }
 
     @Override
-    public Student updateStudentProfile(Long id , UpdateStudentProfileRequest request) {
-        Student student = studentRepository.findById(id).orElseThrow(()
-                -> new StudentNotFoundException("Student not found"));
+    @Transactional
+    public Student updateStudentProfile(Long id, UpdateStudentProfileRequest request) {
+
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new StudentNotFoundException("Student not found"));
+
         Person person = student.getPerson();
+
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
-            person.setEmail(request.getEmail());
+
+            if (!request.getEmail().equals(person.getEmail())) {
+
+                User existing = userService.findUserByPersonEmail(request.getEmail());
+                if (existing != null) {
+                    throw new EmailAlreadyExistException("Email Already Exist");
+                }
+
+                person.setEmail(request.getEmail());
+            }
         }
 
         if (request.getContactNumber() != null && !request.getContactNumber().trim().isEmpty()) {
@@ -84,6 +108,7 @@ public class StudentProfileServiceImpl implements StudentProfileService {
 
         return studentRepository.save(student);
     }
+
 
 
     @Override
