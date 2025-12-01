@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.student.information.response.StudentInfoResponse;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.domain.student.request.UpdateStudentProfileRequest;
 import org.rocs.asa.service.appointment.AppointmentService;
 import org.rocs.asa.service.student.profile.impl.StudentProfileServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,4 +71,20 @@ public class StudentController {
         return new ResponseEntity<>(setAppointment, HttpStatus.OK);
     }
 
+    @GetMapping("/retrieve/profile/{id}")
+    public ResponseEntity<Student> getStudentProfile(@PathVariable Long id) {
+        Student student = studentService.getStudentProfile(id);
+        return new ResponseEntity<>(student,HttpStatus.OK);
+    }
+    @GetMapping("/appointment/{id}")
+    public ResponseEntity<List<Appointment>> getAppointmentByStudentId (@PathVariable Long id) {
+        List<Appointment> appointments = appointmentService.getAppointmentByStudent(id);
+        return ResponseEntity.ok(appointments);
+    }
+
+    @PutMapping("/{id}/profile")
+    public ResponseEntity<Student> updateStudentProfile(@PathVariable Long id, @RequestBody UpdateStudentProfileRequest request) {
+        Student updatedStudent = studentService.updateStudentProfile(id, request);
+        return ResponseEntity.ok(updatedStudent);
+    }
 }
