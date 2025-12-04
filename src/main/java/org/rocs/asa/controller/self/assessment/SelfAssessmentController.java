@@ -4,7 +4,6 @@ import org.apache.coyote.Response;
 import org.rocs.asa.domain.questions.Questions;
 import org.rocs.asa.domain.self.assesment.SelfAssessment;
 import org.rocs.asa.domain.self.request.SelfAssessmentRequest;
-import org.rocs.asa.service.questions.impl.QuestionsServiceImpl;
 import org.rocs.asa.service.self.assessment.SelfAssesmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,13 +15,11 @@ import java.util.List;
 @RequestMapping("/self-assessment")
 public class SelfAssessmentController {
     private SelfAssesmentService assesmentService;
-    private QuestionsServiceImpl questionsService;
 
 
     @Autowired
-    public SelfAssessmentController(SelfAssesmentService assesmentService,QuestionsServiceImpl questionsService) {
+    public SelfAssessmentController(SelfAssesmentService assesmentService) {
         this.assesmentService = assesmentService;
-        this.questionsService = questionsService;
     }
 
     @PostMapping("/create/{id}")

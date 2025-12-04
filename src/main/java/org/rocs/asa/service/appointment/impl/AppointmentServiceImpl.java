@@ -216,7 +216,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         for (Appointment appointment : appointments) {
 
-            // Convert DB datetime → PH datetime
             LocalDateTime start = toPH(appointment.getScheduledDate());
             LocalDateTime end   = toPH(appointment.getEndDate());
 

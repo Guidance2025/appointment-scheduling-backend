@@ -40,6 +40,7 @@ public interface NotificationService {
 
     List<Notifications> sendNotificationToAllStudent(List<String> targetUserId , String title, String body, String actionType);
 
+
     List<Notifications> getNotificationByUser(String userId);
 
     void markAsRead(String userId);
