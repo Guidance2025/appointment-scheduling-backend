@@ -91,7 +91,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByStudent_IdAndStatusIgnoreCase(Long studentId, String status);
 
 
-    long countByStudentIdAndStatus(Long studentId,String status);
+    long countByStudent_IdAndStatusIn(Long studentId, List<String> statuses);
 
     List<Appointment> findByStatusAndScheduledDateBetween(
             String status,

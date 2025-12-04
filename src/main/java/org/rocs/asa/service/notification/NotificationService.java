@@ -1,6 +1,7 @@
 package org.rocs.asa.service.notification;
 
 import com.google.cloud.storage.Notification;
+import org.aspectj.weaver.ast.Not;
 import org.rocs.asa.domain.appointment.Appointment;
 import org.rocs.asa.domain.device.token.DeviceToken;
 import org.rocs.asa.domain.notification.Notifications;
@@ -37,7 +38,7 @@ public interface NotificationService {
      */
     Notifications saveNotification(User user, Appointment appointment, String message, String actionType);
 
-
+    List<Notifications> sendNotificationToAllStudent(List<String> targetUserId , String title, String body, String actionType);
 
     List<Notifications> getNotificationByUser(String userId);
 
