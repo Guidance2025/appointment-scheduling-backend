@@ -11,4 +11,6 @@ public interface DeviceTokenRepository extends JpaRepository<DeviceToken,Long> {
     DeviceToken findByFcmTokenAndUser_UserId(String fcmToken, String userId);
     List <DeviceToken> findByUser_UserId (String userId);
     DeviceToken findByUser_UserIdAndDeviceType (String userId,String deviceType);
+    List<DeviceToken> findByUser_UserIdIn(List<String> userIds);
+    List<DeviceToken> findByFcmToken (String fcmToken);
 }

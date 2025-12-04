@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.section.Section;
+import org.rocs.asa.domain.self.assesment.SelfAssessment;
 import org.rocs.asa.domain.user.User;
 
 import java.io.Serializable;

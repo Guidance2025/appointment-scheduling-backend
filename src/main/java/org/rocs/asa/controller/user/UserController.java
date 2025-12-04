@@ -27,7 +27,7 @@ import static org.rocs.asa.utils.security.constant.SecurityConstant.JWT_TOKEN_HE
  * */
 @RestController
 @RequestMapping("/user")
-@CrossOrigin("http://localhost:5173")
+@CrossOrigin("*")
 public class UserController {
 
     private final UserService userService;
