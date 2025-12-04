@@ -4,6 +4,10 @@ import com.auth0.jwt.exceptions.TokenExpiredException;
 import jakarta.persistence.NoResultException;
 import org.rocs.asa.domain.http.response.HttpResponse;
 import org.rocs.asa.exception.domain.*;
+import org.rocs.asa.exception.domain.AppointmentAlreadyExistException;
+import org.rocs.asa.exception.domain.EmailNotFoundException;
+import org.rocs.asa.exception.domain.UserNotFoundException;
+import org.rocs.asa.exception.domain.UsernameExistsException;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -75,6 +79,14 @@ public class ExceptionHandling implements ErrorController {
 
     @ExceptionHandler(AppointmentAlreadyExistException.class)
     public ResponseEntity<HttpResponse> appointmentAlreadyExistException (AppointmentAlreadyExistException exception)  {
+        return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<HttpResponse> rateLimitExceeded (RateLimitExceededException exception)  {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+    @ExceptionHandler(EmailAlreadyExistException.class)
+    public ResponseEntity<HttpResponse> emailAlreadyExist (EmailAlreadyExistException exception)  {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
     private ResponseEntity<HttpResponse> createHttpResponse(HttpStatus status, String message){

@@ -5,7 +5,7 @@ import org.rocs.asa.domain.account.dto.GuidanceStaffDto;
 import org.rocs.asa.domain.account.dto.StudentAccountDto;
 import org.rocs.asa.domain.account.profile.request.AdminProfileDto;
 import org.rocs.asa.domain.student.information.response.StudentDetailsResponse;
-import org.rocs.asa.domain.guidance.staff.dto.admin.request.UpdateGuidanceStaffRequest;
+import org.rocs.asa.domain.guidance.staff.request.UpdateGuidanceStaffRequest;
 import org.rocs.asa.domain.registration.Registration;
 import org.rocs.asa.domain.student.request.UpdateStudentRequest;
 import org.rocs.asa.domain.user.User;
@@ -142,7 +142,7 @@ public class AdminController {
      * @return ResponseEntity containing success message, and Http Status
      */
     @PutMapping("/students/update")
-    public ResponseEntity<String> updateStudent(@RequestBody UpdateStudentRequest request) {
+    public ResponseEntity<String> updateStudent(@RequestBody UpdateStudentRequest request) throws MessagingException {
         accountsService.updateStudentCredentials(request.getStudentNumber(), request.getNewPassword(),request.getIsLocked());
         return new ResponseEntity<>("Student Credential Successfully Updated", HttpStatus.OK);
     }

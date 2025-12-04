@@ -2,6 +2,7 @@ package org.rocs.asa.controller.counselor;
 
 import org.rocs.asa.domain.account.profile.request.CounselorProfileDto;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
+import org.rocs.asa.domain.guidance.staff.request.profile.UpdateGuidanceStaffProfileRequest;
 import org.rocs.asa.service.profile.counselor.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -9,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/counselor")
+@RequestMapping("/counselor-profile")
 @CrossOrigin("*")
 public class CounselorProfileController {
     private ProfileService profileService;
@@ -25,11 +26,15 @@ public class CounselorProfileController {
     public CounselorProfileController(ProfileService profileService) {
         this.profileService = profileService;
     }
-    @GetMapping("/profile/{employeeNumber}")
+    @GetMapping("/{employeeNumber}")
     public ResponseEntity<CounselorProfileDto> getCounselorProfile (@PathVariable Long employeeNumber){
         CounselorProfileDto profile = profileService.getCounselorProfile(employeeNumber);
         return new ResponseEntity<>(profile, HttpStatus.OK);
     }
 
-
+    @PutMapping("/{guidanceStaffId}/profile")
+    public ResponseEntity<GuidanceStaff> updateStaffProfile(@PathVariable Long guidanceStaffId, @RequestBody UpdateGuidanceStaffProfileRequest request) {
+        GuidanceStaff updateProfile = profileService.updateProfile(guidanceStaffId,request);
+        return ResponseEntity.ok(updateProfile);
+    }
 }

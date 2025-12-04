@@ -54,6 +54,19 @@ public class EmailService {
             LOGGER.info("New created account sent to: {}", email);
         }
     }
+    /**
+     * Send new password to student email
+     *
+     * @param newPassword the new password generated for the user
+     */
+    public void sendStudentNewPasswordEmail(String email,String newPassword) throws MessagingException {
+        Message message = studentNewPasswordEmail(email,newPassword);
+        try (Transport smtpTransport = getEmailSession().getTransport(SIMPLE_MAIL_TRANSFER_PROTOCOL)) {
+            smtpTransport.connect(GMAIL_SMTP_SERVER, USERNAME, PASSWORD);
+            smtpTransport.sendMessage(message, message.getAllRecipients());
+            LOGGER.info("New Password has been sent: {}", email);
+        }
+    }
 
     private Message createNewRegisterAccountEmail(String email,String username,String password) throws MessagingException {
         Message message = new MimeMessage(getEmailSession());
@@ -84,8 +97,31 @@ public class EmailService {
 
         return message;
     }
+
+    private Message studentNewPasswordEmail(String email, String newPassword)
+            throws MessagingException {
+
+        Message message = new MimeMessage(getEmailSession());
+        message.setFrom(new InternetAddress(FROM_EMAIL));
+        message.setRecipient(Message.RecipientType.TO, new InternetAddress(email));
+        message.setSubject(EMAIL_STUDENT_NEW_PASSWORD_SUBJECT);
+
+        String emailBody = studentChangesPasswordEmailBody(newPassword);
+        message.setText(emailBody);
+        message.setSentDate(new Date());
+        message.saveChanges();
+
+        return message;
+    }
+
+    private String studentChangesPasswordEmailBody(String newPassword) {
+        return "The Lord be with you and good day!\n\n"
+                + "Your Password has been successfully changed by the Management Information System (MIS).\n\n"
+                + "Here are your new password :\n"
+                + "New Password: " + newPassword + "\n\n";
+    }
     private String registrationEmailBody(String username, String password) {
-        return "Dear User,\n\n"
+        return  "The Lord be with you and good day!\n\n"
                 + "Your account has been successfully created by the Management Information System (MIS).\n\n"
                 + "Here are your login credentials:\n"
                 + "Username: " + username + "\n"

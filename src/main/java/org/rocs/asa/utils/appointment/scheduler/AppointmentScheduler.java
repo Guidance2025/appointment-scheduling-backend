@@ -58,4 +58,25 @@ public class AppointmentScheduler {
             LOGGER.error("Failed to update appointment statuses: {}", e.getMessage(), e);
         }
     }
+
+    /**
+     * Sends reminder notifications every 5 minutes.
+     * Notifies students 30 minutes before their scheduled appointments.
+     */
+    @Scheduled(fixedRate = 100_000)
+    public void sendAppointmentReminders() {
+        long startTime = System.currentTimeMillis();
+
+        try {
+            LOGGER.info("Starting appointment reminder check");
+            appointmentService.sendAppointmentReminders();
+
+            long duration = System.currentTimeMillis() - startTime;
+            LOGGER.info("Appointment reminder check completed in {}ms", duration);
+
+        } catch (Exception e) {
+            LOGGER.error("Failed to send appointment reminders: {}", e.getMessage(), e);
+        }
+    }
+
 }

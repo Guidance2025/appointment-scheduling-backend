@@ -97,13 +97,10 @@ public class AdminAccountInitializer implements CommandLineRunner {
 
             userRepository.save(adminUser);
 
-            LOGGER.info("═══════════════════════════════════════════════════════");
             LOGGER.info("  DEFAULT ADMIN ACCOUNT CREATED SUCCESSFULLY");
             LOGGER.info("  Username: {}", defaultAdminUsername);
             LOGGER.info("  Password: {}", defaultAdminPassword);
             LOGGER.info("  Email: {}", defaultAdminEmail);
-            LOGGER.warn("   SECURITY WARNING: Change password immediately!");
-            LOGGER.info("═══════════════════════════════════════════════════════");
 
         } catch (Exception e) {
             LOGGER.error("Failed to create default admin account: {}", e.getMessage(), e);

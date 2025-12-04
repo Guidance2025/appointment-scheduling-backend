@@ -1,5 +1,6 @@
 package org.rocs.asa.service.accounts;
 
+import jakarta.mail.MessagingException;
 import org.rocs.asa.domain.account.dto.GuidanceStaffDto;
 import org.rocs.asa.domain.account.dto.StudentAccountDto;
 import org.rocs.asa.domain.user.User;
@@ -17,7 +18,7 @@ public interface AccountsService {
 
     void softDeleteEmployeeAccount(Long id);
 
-    void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked);
+    void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) throws MessagingException;
 
     void updateGuidanceEmployeeCredentials(Long id , String email, Boolean isLocked);
 }

@@ -1,5 +1,6 @@
 package org.rocs.asa.service.accounts.impl;
 
+import jakarta.mail.MessagingException;
 import org.rocs.asa.domain.account.dto.GuidanceStaffDto;
 import org.rocs.asa.domain.account.dto.StudentAccountDto;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
@@ -11,6 +12,7 @@ import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.accounts.AccountsService;
+import org.rocs.asa.service.email.EmailService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,16 +30,20 @@ public class AccountsServiceImpl implements AccountsService {
     private GuidanceStaffRepository guidanceStaffRepository;
     private StudentRepository studentRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+    private EmailService emailService;
 
     @Autowired
     public AccountsServiceImpl(UserRepository userRepository,
                                GuidanceStaffRepository guidanceStaffRepository,
                                StudentRepository studentRepository,
-                               BCryptPasswordEncoder bCryptPasswordEncoder) {
+                               BCryptPasswordEncoder bCryptPasswordEncoder,
+                               EmailService emailService
+    ) {
         this.userRepository = userRepository;
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.studentRepository = studentRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.emailService = emailService;
     }
 
 
@@ -124,18 +130,22 @@ public class AccountsServiceImpl implements AccountsService {
         LOGGER.info("Successfully Deleted ");
     }
 
-    @Transactional
     @Override
-    public void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) {
+    @Transactional
+    public void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) throws MessagingException {
+
         LOGGER.info("Updating credentials for student: {}", studentNumber);
 
         validateStudentNumber(studentNumber);
 
         User user = getUserByStudentNumber(studentNumber);
 
+        boolean passwordChanged = false;
+
         if (newPassword != null && !newPassword.isBlank()) {
             validatePassword(newPassword);
             user.setPassword(bCryptPasswordEncoder.encode(newPassword));
+            passwordChanged = true;
             LOGGER.info("Password updated for student: {}", studentNumber);
         }
 
@@ -147,8 +157,17 @@ public class AccountsServiceImpl implements AccountsService {
         }
 
         userRepository.save(user);
+
+        if (passwordChanged) {
+            emailService.sendStudentNewPasswordEmail(
+                    user.getPerson().getEmail(),
+                    newPassword
+            );
+        }
+
         LOGGER.info("Student credentials updated successfully for: {}", studentNumber);
     }
+
 
     @Override
     public void updateGuidanceEmployeeCredentials(Long id, String email, Boolean isLocked) {

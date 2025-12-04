@@ -40,17 +40,6 @@ public class AppointmentController {
         this.appointmentService = appointmentService;
         this.guidanceService = guidanceService;
     }
-
-    /**
-     * {@code getAllAppointment} used to retrieve all appointments from the system
-     * @return ResponseEntity containing list of all appointments, and Http Status
-     */
-    @GetMapping("/retrieve-appointment")
-    public ResponseEntity<List<Appointment>> getAllAppointment() {
-        List<Appointment> appointments = appointmentService.getAllAppointments();
-        return new ResponseEntity<>(appointments, HttpStatus.OK);
-    }
-
     /**
      * {@code createAppointment} used to create a new appointment in the system
      * @param request that contains the appointment details
@@ -122,4 +111,5 @@ public class AppointmentController {
         Appointment response = appointmentService.guidanceStaffResponse(appointmentId,action);
         return ResponseEntity.ok(response);
     }
+
 }
