@@ -2,6 +2,9 @@ package org.rocs.asa.domain.category;
 
 import jakarta.persistence.*;
 
+import lombok.Getter; import lombok.Setter;
+
+@Getter @Setter
 @Entity
 @Table(name = "tbl_category")
 public class Category {

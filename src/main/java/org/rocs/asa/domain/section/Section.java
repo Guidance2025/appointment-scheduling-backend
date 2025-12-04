@@ -3,8 +3,11 @@ package org.rocs.asa.domain.section;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import lombok.Getter; import lombok.Setter;
+
 @Data
 @Entity
+@Getter @Setter
 @Table(name = "tbl_section")
 public class Section{
     @Id
