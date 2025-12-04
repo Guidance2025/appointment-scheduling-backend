@@ -27,6 +27,7 @@ public interface UserService{
      */
     User findUserByPersonEmail(String email);
 
+
     /**
      * registers the user using their credentials
      *

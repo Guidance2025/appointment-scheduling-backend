@@ -1,4 +1,4 @@
-package org.rocs.asa.provider;
+package org.rocs.asa.service.provider;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
@@ -71,6 +71,7 @@ public class FcmPushProvider {
     /**
      * Send notification to multiple tokens (batch)
      * Max 500 tokens per batch
+     * Returns null if sending fails completely
      */
     public BatchResponse sendToMultipleTokens(List<String> fcmTokens, String title, String body, Map<String, String> data) {
         try {
@@ -110,19 +111,34 @@ public class FcmPushProvider {
             }
 
             MulticastMessage message = messageBuilder.build();
-            BatchResponse response = FirebaseMessaging.getInstance().sendMulticast(message);
+            BatchResponse response = FirebaseMessaging.getInstance().sendEachForMulticast(message);
 
             LOGGER.info("Successfully sent {} messages", response.getSuccessCount());
             if (response.getFailureCount() > 0) {
                 LOGGER.warn("Failed to send {} messages", response.getFailureCount());
 
                 List<SendResponse> responses = response.getResponses();
+                List<String> invalidTokens = new ArrayList<>();
+
                 for (int i = 0; i < responses.size(); i++) {
                     if (!responses.get(i).isSuccessful()) {
-                        LOGGER.error("Failed to send to token {}: {}",
-                                cleanedTokens.get(i).substring(0, Math.min(50, cleanedTokens.get(i).length())),
-                                responses.get(i).getException().getMessage());
+                        String errorCode = String.valueOf(responses.get(i).getException().getErrorCode());
+                        String token = cleanedTokens.get(i);
+
+                        LOGGER.error("Failed to send to token {}: {} (Error: {})",
+                                token.substring(0, Math.min(50, token.length())),
+                                responses.get(i).getException().getMessage(),
+                                errorCode);
+
+                        if ("NOT_FOUND".equals(errorCode) ||
+                                "UNREGISTERED".equals(errorCode) ||
+                                "INVALID_ARGUMENT".equals(errorCode)) {
+                            invalidTokens.add(token);
+                        }
                     }
+                }
+                if (!invalidTokens.isEmpty()) {
+                    LOGGER.warn("Found {} invalid tokens that should be removed from database", invalidTokens.size());
                 }
             }
 
@@ -133,12 +149,14 @@ public class FcmPushProvider {
             LOGGER.error("  Messaging Error Code: {}", e.getMessagingErrorCode());
             LOGGER.error("  Error Message: {}", e.getMessage());
             LOGGER.error("  Full Exception: ", e);
-            throw new RuntimeException("FCM Error: " + e.getMessage(), e);
+            LOGGER.warn("Returning null due to Firebase exception - operation will continue");
+            return null;
         } catch (Exception e) {
             LOGGER.error("Failed to send FCM messages - Exception type: {}", e.getClass().getSimpleName());
             LOGGER.error("Failed to send FCM messages - Error message: {}", e.getMessage());
             LOGGER.error("Failed to send FCM messages - Full stack trace: ", e);
-            throw new RuntimeException("Error sending FCM messages", e);
+            LOGGER.warn("Returning null due to exception - operation will continue");
+            return null;
         }
     }
 

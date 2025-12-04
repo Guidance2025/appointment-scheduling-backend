@@ -26,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,7 +41,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Value("${appointment.max-pending-per-student:3}")
     private int maxPendingAppointments;
-
 
     private static final int REMINDER_MINUTES_BEFORE = 25;
     private static final int REMINDER_WINDOW_MINUTES = 5;
@@ -201,7 +203,6 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional
     public void markAsOnGoingOrIsCompleted() {
 
-        // Always use PH timezone
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Manila"));
 
         List<Appointment> appointments = appointmentRepository.findByStatusInOptimized(
@@ -215,7 +216,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         for (Appointment appointment : appointments) {
 
-            // Convert DB datetime → PH datetime
             LocalDateTime start = toPH(appointment.getScheduledDate());
             LocalDateTime end   = toPH(appointment.getEndDate());
 
@@ -311,10 +311,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private String buildReminderMessage(Appointment appointment, GuidanceStaff guidanceStaff) {
         String staffName = getGuidanceStaffFullName(guidanceStaff);
-        String appointmentTime = appointment.getScheduledDate()
-                .format(java.time.format.DateTimeFormatter.ofPattern("h:mm a"));
-        String appointmentDate = appointment.getScheduledDate()
-                .format(java.time.format.DateTimeFormatter.ofPattern("MMMM d, yyyy"));
+
+        ZonedDateTime manilaTime = appointment.getScheduledDate()
+                .atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(ZoneId.of("Asia/Manila"));
+
+        String appointmentTime = manilaTime.format(DateTimeFormatter.ofPattern("h:mm a"));
+        String appointmentDate = manilaTime.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"));
 
         return String.format(
                 "Reminder: Your appointment with %s is in 30 minutes at %s on %s. Type: %s",
@@ -323,6 +326,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentDate,
                 appointment.getAppointmentType()
         );
+
     }
     /**
      * Finds appointments by guidance staff ID and status.
@@ -455,9 +459,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private void validatePendingAppointmentLimit(Long studentId) {
-        long pendingCount = appointmentRepository.countByStudentIdAndStatus(
+        long pendingCount = appointmentRepository.countByStudent_IdAndStatusIn(
                 studentId,
-                AppointmentStatus.PENDING.name()
+                Arrays.asList(AppointmentStatus.PENDING.name(),
+                        AppointmentStatus.SCHEDULED.name(),
+                        AppointmentStatus.ONGOING.name())
         );
 
         if (pendingCount >= maxPendingAppointments) {
