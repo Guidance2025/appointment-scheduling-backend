@@ -1,15 +1,34 @@
 package org.rocs.asa.service.exit.interview.impl;
 
+import com.google.api.gax.rpc.NotFoundException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.rocs.asa.domain.exit.interview.ExitInterview;
-import org.rocs.asa.domain.question.Question;
+import org.rocs.asa.domain.exit.interview.ExitInterviewQuestion;
+import org.rocs.asa.domain.exit.interview.ExitInterviewResponse;
+import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
+import org.rocs.asa.domain.questions.Questions;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.domain.user.User;
 import org.rocs.asa.dto.exit.ExitInterviewDetailDto;
+import org.rocs.asa.dto.exit.ExitInterviewQuestionRequest;
+import org.rocs.asa.dto.exit.ExitInterviewResponseRequest;
 import org.rocs.asa.dto.exit.StudentListRow;
-import org.rocs.asa.repository.exit.interview.ExitInterviewRepository;
+import org.rocs.asa.exception.domain.GuidanceStaffNotFoundException;
+import org.rocs.asa.exception.domain.QuestionDoesNotExistException;
+import org.rocs.asa.repository.device.token.DeviceTokenRepository;
+import org.rocs.asa.repository.exit.interview.ExitInterviewQuestionRepository;
+import org.rocs.asa.repository.exit.interview.ExitInterviewResponseRepository;
+import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
+import org.rocs.asa.repository.questions.QuestionsRepository;
 import org.rocs.asa.repository.student.StudentRepository;
+import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.exit.ExitInterviewService;
+import org.rocs.asa.service.notification.NotificationService;
+import org.rocs.asa.service.student.StudentService;
+import org.rocs.asa.utils.security.enumeration.Role;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,20 +36,41 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ExitInterviewServiceImpl implements ExitInterviewService {
+    private static Logger LOGGER = LoggerFactory.getLogger(ExitInterviewServiceImpl.class);
 
-    private final StudentRepository studentRepository;
-    private final ExitInterviewRepository exitInterviewRepository;
+    private GuidanceStaffRepository guidanceStaffRepository;
+    private ExitInterviewQuestionRepository exitInterviewQuestionRepository;
+    private ExitInterviewResponseRepository exitInterviewResponseRepository;
+    private StudentRepository studentRepository;
+    private StudentService studentService;
+    private NotificationService notificationService;
+    private UserRepository userRepository;
+    private DeviceTokenRepository deviceTokenRepository;
 
     @PersistenceContext
     private EntityManager em;
 
-    public ExitInterviewServiceImpl(StudentRepository studentRepository,
-                                    ExitInterviewRepository exitInterviewRepository) {
+    @Autowired
+    public ExitInterviewServiceImpl(GuidanceStaffRepository guidanceStaffRepository,
+                                    ExitInterviewQuestionRepository exitInterviewQuestionRepository,
+                                    ExitInterviewResponseRepository exitInterviewResponseRepository,
+                                    StudentRepository studentRepository,
+                                    StudentService studentService,
+                                    NotificationService notificationService,
+                                    UserRepository userRepository,
+                                    DeviceTokenRepository deviceTokenRepository) {
+        this.guidanceStaffRepository = guidanceStaffRepository;
+        this.exitInterviewQuestionRepository = exitInterviewQuestionRepository;
+        this.exitInterviewResponseRepository = exitInterviewResponseRepository;
         this.studentRepository = studentRepository;
-        this.exitInterviewRepository = exitInterviewRepository;
+        this.studentService = studentService;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
+        this.deviceTokenRepository = deviceTokenRepository;
     }
 
     @Override
@@ -86,8 +126,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
         String course = s.getSection() != null ? s.getSection().getCourse() : null;
         String cluster = s.getSection() != null ? s.getSection().getClusterName() : null;
 
-        var all = exitInterviewRepository.findAllByStudent_IdOrderBySubmittedDateDesc(studentId);
-
+        var all = exitInterviewResponseRepository.findAllByStudent_IdOrderBySubmittedDateDesc(studentId);
         var answers = all.stream().map(ei ->
                 new ExitInterviewDetailDto.AnswerItem(
                         ei.getQuestion() != null ? ei.getQuestion().getQuestionText() : null,
@@ -95,7 +134,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
                 )).toList();
 
         LocalDateTime submitted = all.stream()
-                .map(ExitInterview::getSubmittedDate)
+                .map(ExitInterviewResponse::getSubmittedDate)
                 .filter(d -> d != null)
                 .map(d -> d.atStartOfDay())
                 .findFirst().orElse(null);
@@ -110,17 +149,165 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
     @Override
     @Transactional
     public void saveAnswer(Long studentId, Long questionId, String responseText) {
-        ExitInterview ei = new ExitInterview();
+        ExitInterviewResponse ei = new ExitInterviewResponse();
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found"));
-        Question question = em.find(Question.class, questionId);
+        ExitInterviewQuestion question = exitInterviewQuestionRepository.findById(questionId)
+                .orElseThrow(() -> new IllegalArgumentException("Question not found"));
 
         ei.setStudent(student);
         ei.setQuestion(question);
         ei.setResponseText(responseText);
         ei.setSubmittedDate(LocalDate.now());
 
-        exitInterviewRepository.save(ei);
+        exitInterviewResponseRepository.save(ei);
+    }
+
+    @Override
+    @Transactional
+    public List<ExitInterviewQuestion> createMultipleExitInterviewQuestions(
+            Long guidanceStaffId,
+            List<String> questionTexts
+    ) {
+        GuidanceStaff guidanceStaff = guidanceStaffRepository.findById(guidanceStaffId)
+                .orElseThrow(() -> new GuidanceStaffNotFoundException(
+                        "Guidance Staff not found with id: " + guidanceStaffId));
+
+        List<String> cleanedQuestions = questionTexts.stream()
+                .filter(text -> text != null && !text.trim().isEmpty())
+                .toList();
+
+        if (cleanedQuestions.size() > 5) {
+            throw new IllegalArgumentException("You can only create up to 5 questions.");
+        }
+
+        List<ExitInterviewQuestion> questions = cleanedQuestions.stream()
+                .map(text -> {
+                    ExitInterviewQuestion q = new ExitInterviewQuestion();
+                    q.setGuidanceStaff(guidanceStaff);
+                    q.setQuestionText(text);
+                    q.setDateCreated(LocalDateTime.now());
+                    return q;
+                })
+                .toList();
+
+        List<String> studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
+                .stream()
+                .map(User::getUserId)
+                .toList();
+
+        notificationService.sendNotificationToAllStudent(
+                studentUserIds,
+                "New Exit Interview Questions",
+                "Posted new exit interview questions.",
+                "EXIT INTERVIEW UPDATE"
+        );
+
+        return exitInterviewQuestionRepository.saveAll(questions);
+    }
+
+    @Override
+    public List<ExitInterviewQuestion> findByGuidanceStaffId(Long guidanceStaffId) {
+        return exitInterviewQuestionRepository.findByGuidanceStaffId(guidanceStaffId);
+    }
+
+    @Override
+    public List<ExitInterviewQuestion> findAllQuestions() {
+        return exitInterviewQuestionRepository.findAll();
+    }
+
+    @Override
+    @Transactional
+    public ExitInterviewResponse studentResponse(ExitInterviewResponseRequest request) {
+        if (request.getQuestionId() == null) {
+            throw new IllegalArgumentException("Question ID cannot be null");
+        }
+        if (request.getResponseText() == null || request.getResponseText().trim().isEmpty()) {
+            throw new IllegalArgumentException("Response text cannot be empty");
+        }
+        Student authenticatedStudent = studentService.findByAuthenticatedStudent();
+
+        ExitInterviewQuestion question = exitInterviewQuestionRepository.findById(request.getQuestionId())
+                .orElseThrow(() -> new QuestionDoesNotExistException("Question does not exist"));
+
+        boolean checkAnsweredQuestion = exitInterviewResponseRepository.existsByStudentIdAndQuestionId(authenticatedStudent.getId(), request.getQuestionId());
+
+        if (checkAnsweredQuestion) {
+            throw new QuestionDoesNotExistException("You have already answered this question");
+        }
+
+        ExitInterviewResponse saved = new ExitInterviewResponse();
+        saved.setResponseText(request.getResponseText());
+        saved.setQuestion(question);
+        saved.setStudent(authenticatedStudent);
+        saved.setSubmittedDate(LocalDate.now());
+        LOGGER.info("Exit Interview Response Submitted Successfully");
+
+        return exitInterviewResponseRepository.save(saved);
+    }
+
+    @Override
+    public List<ExitInterviewResponse> retrieveStudentResponse() {
+        return exitInterviewResponseRepository.findAll();
+    }
+
+    @Override
+    public List<ExitInterviewQuestion> getUnansweredQuestionsForAuthenticatedStudent() {
+        Student student = studentService.findByAuthenticatedStudent();
+        return exitInterviewQuestionRepository.findUnansweredQuestionByStudentId(student.getId());
+    }
+
+    @Override
+    public List<ExitInterviewQuestion> getQuestions(Long staffId) {
+        return findByGuidanceStaffId(staffId);
+    }
+
+    @Override
+    @Transactional
+    public ExitInterviewQuestion createQuestion(Long staffId, ExitInterviewQuestionRequest request) {
+        GuidanceStaff staff = guidanceStaffRepository.findById(staffId)
+                .orElseThrow(() -> new IllegalArgumentException("Guidance staff not found"));
+        ExitInterviewQuestion q = new ExitInterviewQuestion();
+        q.setGuidanceStaff(staff);
+        q.setQuestionText(request.getQuestionText());
+        q.setCategory(request.getCategory());
+        q.setDateCreated(LocalDateTime.now());
+        return exitInterviewQuestionRepository.save(q);
+    }
+
+    @Override
+    @Transactional
+    public ExitInterviewQuestion updateQuestion(Long id, ExitInterviewQuestionRequest request) {
+        ExitInterviewQuestion q = exitInterviewQuestionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Question not found"));
+        q.setQuestionText(request.getQuestionText());
+        q.setCategory(request.getCategory());
+        return exitInterviewQuestionRepository.save(q);
+    }
+
+    @Override
+    @Transactional
+    public void deleteQuestion(Long id) {
+        exitInterviewQuestionRepository.deleteById(id);
+    }
+
+    @Override
+    public List<ExitInterviewResponse> getResponses() {
+        return exitInterviewResponseRepository.findAll();
+    }
+
+    @Override
+    @Transactional
+    public ExitInterviewResponse submitResponse(Long studentId, ExitInterviewResponseRequest request) {
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("Student not found"));
+        ExitInterviewQuestion question = exitInterviewQuestionRepository.findById(request.getQuestionId())
+                .orElseThrow(() -> new IllegalArgumentException("Question not found"));
+        ExitInterviewResponse r = new ExitInterviewResponse();
+        r.setStudent(student);
+        r.setQuestion(question);
+        r.setResponseText(request.getResponseText());
+        r.setSubmittedDate(LocalDate.now());
+        return exitInterviewResponseRepository.save(r);
     }
 }
-

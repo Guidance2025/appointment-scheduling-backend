@@ -11,6 +11,6 @@ public interface PostService {
     List<Map<String, Object>> getAllPosts(int limit);
     Map<String, Object> getQuoteOfTheDay();
     Map<String, Object> getFeed(int limit);
-
     void deletePost(Long postId);
+    void replyToQuestion(Long postId, String responseText);
 }

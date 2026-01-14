@@ -60,6 +60,8 @@ public class PostServiceImpl implements PostService {
             normalized = "Announcement";
         } else if (normalized.equalsIgnoreCase("events") || normalized.equalsIgnoreCase("event")) {
             normalized = "Events";
+        } else if (normalized.equalsIgnoreCase("questions")) {
+            normalized = "Questions";
         } else {
             normalized = normalized.substring(0, 1).toUpperCase() + normalized.substring(1);
         }
@@ -84,7 +86,6 @@ public class PostServiceImpl implements PostService {
             LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={}, content='{}')",
                     employeeNumber, capped64, request.getSectionId(), content);
 
-            // Optionally return the latest matching post so caller still gets something
             List<Long> ids = jdbcTemplate.queryForList(
                     "SELECT p.post_id " +
                             "FROM tbl_posts p " +
@@ -200,7 +201,7 @@ public class PostServiceImpl implements PostService {
                         "    LEFT JOIN tbl_person per ON gs.person_id = per.id " +
                         "    WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
                         "  ) t " +
-                        "  WHERE t.rn = 1 " +           // one row per post_id
+                        "  WHERE t.rn = 1 " +
                         "  ORDER BY t.posted_date DESC " +
                         ") WHERE ROWNUM <= ?";
 
@@ -250,5 +251,13 @@ public class PostServiceImpl implements PostService {
         }
         postRepository.deleteById(postId);
         LOGGER.info("Post deleted id={}", postId);
+    }
+
+    @Override
+    @Transactional
+    public void replyToQuestion(Long postId, String responseText) {
+        Post post = postRepository.findById(postId).orElseThrow(() -> new EntityNotFoundException("Post not found"));
+        if (post.getQuestionId() == null) throw new IllegalArgumentException("Post is not a question");
+        jdbcTemplate.update("INSERT INTO tbl_anonymous_response (question_id, response_text, response_date) VALUES (?, ?, SYSDATE)", post.getQuestionId(), responseText);
     }
 }

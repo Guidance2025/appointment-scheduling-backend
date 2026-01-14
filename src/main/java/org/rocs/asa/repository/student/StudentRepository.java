@@ -12,6 +12,5 @@ public interface StudentRepository extends JpaRepository<Student,Long> {
     Student findStudentByStudentNumber(String studentNumber);
     boolean existsByStudentNumber(String StudentNumber);
     Student findByUser (User user);
-//    List<StudentListItemDto> listStudentsWithHasResponse(String course, String cluster);
-//    Optional<StudentInfoDto> findStudentInfo(Long studentId);
+
 }

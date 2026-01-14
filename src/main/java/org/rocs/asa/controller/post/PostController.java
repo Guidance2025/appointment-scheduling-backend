@@ -44,7 +44,12 @@ public class PostController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> delete(@PathVariable Long postId) {
         postService.deletePost(postId);
-       return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/posts/{postId}/reply")
+    public ResponseEntity<Void> replyToQuestion(@PathVariable Long postId, @RequestBody Map<String, String> reply) {
+        postService.replyToQuestion(postId, reply.get("responseText"));
+        return ResponseEntity.ok().build();
+    }
 }

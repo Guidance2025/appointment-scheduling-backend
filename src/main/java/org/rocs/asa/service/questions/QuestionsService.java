@@ -1,9 +1,12 @@
-//package org.rocs.asa.service.questions;
-//
-//import org.rocs.asa.domain.questions.Questions;
-//
-//import java.util.List;
-//
-//public interface QuestionsService {
-//    List<Questions> createMultipleSelfAssessmentQuestions(Long guidanceStaffId, List<String> questionText);
-//}
+package org.rocs.asa.service.questions;
+
+import org.rocs.asa.domain.questions.Questions;
+import org.rocs.asa.dto.question.QuestionDto;
+
+import java.util.List;
+
+public interface QuestionsService {
+    List<Questions> createMultipleSelfAssessmentQuestions(Long guidanceStaffId, List<String> questionText);
+
+    List<QuestionDto> list();
+}
