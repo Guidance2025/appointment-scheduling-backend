@@ -2,6 +2,7 @@ package org.rocs.asa.controller.student;
 
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.appointment.Appointment;
+import org.rocs.asa.domain.appointment.request.RescheduleAppointmentRequest;
 import org.rocs.asa.domain.student.information.response.StudentInfoResponse;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.student.request.UpdateStudentProfileRequest;
@@ -12,7 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * {@code StudentController} handles all student profile operations
@@ -59,9 +62,9 @@ public class StudentController {
         StudentInfoResponse studentInformation = studentService.getPersonByStudentNumber(studentNumber);
         return new ResponseEntity<>(studentInformation, HttpStatus.OK);
     }
-    @GetMapping("/appointment/{studentId}/{status}")
-    public ResponseEntity<List<Appointment>> getStudentAppointment (@PathVariable Long studentId, @PathVariable String status) {
-        List<Appointment> studentAppointments = appointmentService.findStudentAppointments(studentId,status);
+    @GetMapping("/appointment/{studentId}/by-status")
+    public ResponseEntity<List<Appointment>> getStudentAppointment (@PathVariable Long studentId, @RequestParam List <String> statuses) {
+        List<Appointment> studentAppointments = appointmentService.findStudentAppointments(studentId,statuses);
         return ResponseEntity.ok(studentAppointments);
     }
 
@@ -69,6 +72,17 @@ public class StudentController {
     public ResponseEntity<Appointment> studentSetAppointment (@RequestBody Appointment appointment) {
         Appointment setAppointment = appointmentService.studentCreateAppointment(appointment);
         return new ResponseEntity<>(setAppointment, HttpStatus.OK);
+    }
+
+    /**
+     * Student responds to an appointment request (accept/decline)
+     */
+    @PostMapping("/{appointmentId}/response")
+    public ResponseEntity<Appointment> studentResponseToAppointment(
+            @PathVariable Long appointmentId,
+            @RequestBody Map<String, String> data) {
+        Appointment response = appointmentService.studentResponseToAppointment(appointmentId, data);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/retrieve/profile/{id}")
@@ -87,4 +101,23 @@ public class StudentController {
         Student updatedStudent = studentService.updateStudentProfile(id, request);
         return ResponseEntity.ok(updatedStudent);
     }
+
+    /**
+     * Student reschedules their appointment
+     * POST /student/appointment/reschedule
+     *
+     * Request body:
+     * {
+     *   "appointmentId": 123,
+     *   "newScheduledDate": "2025-01-20T10:00:00",  // PH time
+     *   "newEndDate": "2025-01-20T11:00:00",        // PH time
+     *   "reason": "Need to attend class"            // Optional
+     * }
+     */
+    @PostMapping("/reschedule")
+    public ResponseEntity<?> rescheduleAppointment(@Valid @RequestBody RescheduleAppointmentRequest request) {
+            Appointment rescheduled = appointmentService.studentRescheduleAppointment(request);
+            return ResponseEntity.ok(rescheduled);
+    }
+
 }

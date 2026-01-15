@@ -22,10 +22,13 @@ import com.google.firebase.messaging.BatchResponse;
 import com.google.firebase.messaging.SendResponse;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class NotificationServiceImpl implements NotificationService {
@@ -106,14 +109,15 @@ public class NotificationServiceImpl implements NotificationService {
                 .orElseThrow(() -> new AppointmentNotFoundException(
                         "Appointment Not Found with id " + appointment.getAppointmentId()));
 
+        LocalDateTime nowUTC = LocalDateTime.now(ZoneOffset.UTC);
         Notifications notification = new Notifications();
         notification.setUser(user);
         notification.setAppointment(appointment);
         notification.setMessage(message);
         notification.setActionType(actionType);
         notification.setIsRead(0);
-        notification.setCreatedAt(LocalDateTime.now());
-        notification.setUpdatedAt(LocalDateTime.now());
+        notification.setCreatedAt(nowUTC);
+        notification.setUpdatedAt(nowUTC);
 
         return notificationRepository.save(notification);
     }
@@ -142,18 +146,17 @@ public class NotificationServiceImpl implements NotificationService {
         List<DeviceToken> deviceTokens = deviceTokenRepository.findByUser_UserIdIn(targetUserIds);
 
         List<String> fcmTokens = new ArrayList<>();
-        Map<String, User> uniqueStudentUsers = new HashMap<>();
-
+        Set<String> uniqueStudentUserIds = new HashSet<>();
         for (DeviceToken token : deviceTokens) {
             User user = token.getUser();
 
             if (Role.STUDENT_ROLE.name().equals(user.getRole())) {
                 fcmTokens.add(token.getFcmToken());
-                uniqueStudentUsers.putIfAbsent(user.getUserId(), user);
+                uniqueStudentUserIds.add(user.getUserId()); // Changed: Store user ID only
             }
         }
 
-        LOGGER.info("Found {} student users with {} FCM tokens", uniqueStudentUsers.size(), fcmTokens.size());
+        LOGGER.info("Found {} student users with {} FCM tokens", uniqueStudentUserIds.size(), fcmTokens.size());
 
         if (!fcmTokens.isEmpty()) {
             try {
@@ -177,18 +180,19 @@ public class NotificationServiceImpl implements NotificationService {
             LOGGER.warn("No FCM tokens available to send notifications");
         }
 
-        // --- 4. SAVE NOTIFICATION RECORDS (ONE PER USER) ---
-        List<Notifications> savedNotifications = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+        List<User> managedStudents = userRepository.findByUserIdIn(uniqueStudentUserIds);
 
-        for (User student : uniqueStudentUsers.values()) {
+        List<Notifications> savedNotifications = new ArrayList<>();
+        LocalDateTime nowUTC = LocalDateTime.now(ZoneOffset.UTC);
+
+        for (User student : managedStudents) {
             Notifications notif = new Notifications();
             notif.setUser(student);
             notif.setMessage(body);
             notif.setActionType(actionType);
             notif.setIsRead(0);
-            notif.setCreatedAt(now);
-            notif.setUpdatedAt(now);
+            notif.setCreatedAt(nowUTC);
+            notif.setUpdatedAt(nowUTC);
 
             savedNotifications.add(notificationRepository.save(notif));
         }
@@ -207,6 +211,7 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationRepository.findNotificationsByUser_UserIdOrderByCreatedAtDesc(userId);
     }
 
+
     @Override
     @Transactional
     public void markAsRead(String userId) {
@@ -219,10 +224,10 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nowUTC = LocalDateTime.now(ZoneOffset.UTC);
         for (Notifications notification : notificationsList) {
             notification.setIsRead(1);
-            notification.setUpdatedAt(now);
+            notification.setUpdatedAt(nowUTC);
         }
 
         notificationRepository.saveAll(notificationsList);
@@ -239,10 +244,10 @@ public class NotificationServiceImpl implements NotificationService {
             return notificationsList;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nowUTC = LocalDateTime.now(ZoneOffset.UTC);
         for (Notifications notification : notificationsList) {
             notification.setIsRead(1);
-            notification.setUpdatedAt(now);
+            notification.setUpdatedAt(nowUTC);
         }
 
         LOGGER.info("Mobile: Marked {} notification(s) as read", notificationsList.size());
@@ -286,7 +291,6 @@ public class NotificationServiceImpl implements NotificationService {
                 if (!responses.get(i).isSuccessful()) {
                     String errorCode = String.valueOf(responses.get(i).getException().getErrorCode());
 
-                    // Identify tokens that should be removed
                     if ("NOT_FOUND".equals(errorCode) ||
                             "UNREGISTERED".equals(errorCode) ||
                             "INVALID_ARGUMENT".equals(errorCode)) {
@@ -307,6 +311,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     /**
      * Remove invalid FCM tokens from database
+     * NOTE: This only deletes the DeviceToken records, not the associated User records
      */
     @Transactional
     private void removeInvalidTokens(List<String> invalidTokens) {
@@ -320,6 +325,10 @@ public class NotificationServiceImpl implements NotificationService {
             for (String token : invalidTokens) {
                 List<DeviceToken> tokensToDelete = deviceTokenRepository.findByFcmToken(token);
                 if (!tokensToDelete.isEmpty()) {
+                    for (DeviceToken deviceToken : tokensToDelete) {
+                        deviceToken.setUser(null);
+                    }
+                    deviceTokenRepository.saveAll(tokensToDelete);
                     deviceTokenRepository.deleteAll(tokensToDelete);
                     LOGGER.info("Deleted invalid token: {}...", token.substring(0, Math.min(50, token.length())));
                 }
@@ -328,6 +337,7 @@ public class NotificationServiceImpl implements NotificationService {
             LOGGER.info("Successfully removed {} invalid tokens", invalidTokens.size());
         } catch (Exception e) {
             LOGGER.error("Failed to remove invalid tokens: {}", e.getMessage());
+            LOGGER.warn("Continuing with notification process despite token cleanup failure");
         }
     }
 }

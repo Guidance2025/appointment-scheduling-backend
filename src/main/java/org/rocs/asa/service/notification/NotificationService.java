@@ -30,7 +30,7 @@ public interface NotificationService {
     /**
      * Saves a notification record for a user and appointment.
      *
-     * @param user        the user to associate with the notification
+     * @param user        the user to associate with the not    ification
      * @param appointment the appointment associated with the notification
      * @param message     the notification message
      * @param actionType  the type of action for this notification

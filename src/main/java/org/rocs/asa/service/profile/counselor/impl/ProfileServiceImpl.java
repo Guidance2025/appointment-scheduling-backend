@@ -64,14 +64,11 @@ public class ProfileServiceImpl implements ProfileService {
                 person.setEmail(request.getEmail());
             }
         }
-        if(request.getContactNumber() != null && !request.getContactNumber().trim().isEmpty())
-            if(request.getContactNumber().equals(person.getContactNumber())) {
-                User existing = userRepository.findUserByPersonContactNumber(request.getContactNumber());
-                if(existing != null ) {
-                    throw new AlreadyExistException("Contact Number Already Exist");
-                }
+        if(request.getContactNumber() != null && !request.getContactNumber().trim().isEmpty()) {
+            if (!request.getContactNumber().equals(person.getContactNumber())) {
                 person.setContactNumber(request.getContactNumber());
             }
+        }
 
         return guidanceStaffRepository.save(guidanceStaff);
     }

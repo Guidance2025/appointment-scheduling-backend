@@ -20,6 +20,8 @@ public class ExceptionConstants {
      * error message that indicates the User enters an incorrect credentials
      * */
     public static String INCORRECT_CREDENTIAL = "Username/Password is incorrect";
+
+    public static String EXCEED_LOGIN_ATTEMPT = "Account is locked due to multiple failed Login Attempts";
     /**
      * error message that indicates the Account is disabled
      * */

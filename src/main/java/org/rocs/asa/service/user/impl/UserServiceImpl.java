@@ -1,7 +1,6 @@
 package org.rocs.asa.service.user.impl;
 
 import jakarta.mail.MessagingException;
-//import jakarta.transaction.Transactional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
@@ -27,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -62,6 +62,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Value("${spring.application.endpoints.password-reset-verify}")
     private String verifyEndpoint;
+
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            BCryptPasswordEncoder bCryptPasswordEncoder,
@@ -96,16 +97,37 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        LOGGER.info("🔍 DEBUG: loadUserByUsername called for: {}", username);
+
+        // ✅ CRITICAL: Check login attempts FIRST (before user lookup)
+        // This prevents brute force attacks on non-existent usernames
+        boolean attemptsExceeded = loginAttemptsService.hasExceedMaxAttempts(username);
+        LOGGER.info("🔍 DEBUG: hasExceedMaxAttempts returned: {} for username: {}", attemptsExceeded, username);
+
+        if(attemptsExceeded){
+            LOGGER.warn("🔒 BLOCKING LOGIN - Too many failed attempts for username: {}", username);
+            throw new LockedException("Your account has been locked");
+        }
+
+        // Find user in database
         User user = this.findUserByUsername(username);
         if(user == null){
-            LOGGER.info(USER_NOT_FOUND);
-            throw new UserNotFoundException(USER_NOT_FOUND);
-        }else{
-            validateLoginAttempt(user);
-            user.setLastLoginDate(new Date());
-            this.userRepository.save(user);
-            return new UserPrincipal(user);
+            LOGGER.info("❌ User not found: {}", username);
+            throw new UsernameNotFoundException(USER_NOT_FOUND);
         }
+
+        // Check if account is locked in database
+        if(user.isLocked()){
+            LOGGER.warn("🔒 Account is locked in database: {}", username);
+            throw new LockedException("Your account has been locked");
+        }
+
+        // SUCCESS: Update last login date
+        user.setLastLoginDate(new Date());
+        this.userRepository.save(user);
+
+        LOGGER.info("✅ User authenticated successfully: {}", username);
+        return new UserPrincipal(user);
     }
 
     @Override
@@ -117,6 +139,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         }
         return registration;
     }
+
     @Override
     public void initiatePasswordReset(String username, String newPassword) throws MessagingException {
         User existingUser = userRepository.findUserByUsername(username);
@@ -140,6 +163,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         this.passwordResetTokenService.incrementAttempts(userEmail);
         this.emailService.sendPasswordResetVerificationEmail(userEmail,verifyToken);
     }
+
     @Override
     public void verifyAndCompletePasswordReset(String token) {
         Map<String,String> tokenData = passwordResetTokenService.validateToken(token);
@@ -154,16 +178,18 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         existingUser.setPassword(encryptedPassword);
         existingUser.setActive(true);
-        existingUser.setLocked(false);
+        existingUser.setLocked(false); // Unlock account when password is reset
         userRepository.save(existingUser);
 
         this.passwordResetTokenService.evictTokenInCache(token);
         this.passwordResetTokenService.clearAttempts(email);
 
+        // Clear login attempts when password is reset
+        this.loginAttemptsService.evictUserToLoginAttemptCache(existingUser.getUsername());
 
-        LOGGER.info("Password successfully reset for user: {}", existingUser.getUsername());
-
+        LOGGER.info("✅ Password successfully reset for user: {}", existingUser.getUsername());
     }
+
     private String buildResetPasswordUrl(String token){
         return frontendUrl + "/verification-success?token=" + token;
     }
@@ -329,6 +355,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         return savedRegistration;
     }
+
     @Override
     public Map<String, Object> buildLoginResponse(User user) {
         Map<String, Object> response = new HashMap<>();
@@ -358,6 +385,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         User userEmail = findUserByUsername(newUsername);
         if(StringUtils.isNotBlank(currentUsername)){
             User currentUser = findUserByUsername(currentUsername);
+            validateLoginAttempt(currentUser);
             if(currentUser == null){
                 throw new UserNotFoundException("User not found");
             }
@@ -367,35 +395,42 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             return currentUser;
         } else {
             if(userEmail != null){
-                throw new UsernameExistException("Username is already exist");
-            }
+                throw new UsernameExistException("Username is already exist");}
             return null;
         }
 
     }
+
     private void validatePassword(String password) {
         if (password == null || password.length() < 6) {
             throw new InvalidPasswordException("Password must be at least 6 characters");
         }
     }
+
     private String generateUserId(){
         return RandomStringUtils.randomNumeric(10);
     }
+
     private String generatePassword(){
         return RandomStringUtils.randomAlphanumeric(10);
     }
+
     private String encodePassword(String password){
         return bCryptPasswordEncoder.encode(password);
     }
+
     private void validateLoginAttempt(User user){
-        if(!user.isLocked()){
-            if(loginAttemptsService.hasExceedMaxAttempts(user.getUsername())){
-                user.setLocked(true);
-            }else{
-                user.setLocked(false);
-            }
-        }else{
+        if(user.isLocked()){
+            LOGGER.warn("Attempted access to locked account: {}", user.getUsername());
             loginAttemptsService.evictUserToLoginAttemptCache(user.getUsername());
+            throw new LockedException("Your account has been locked");
+        }
+
+        if(loginAttemptsService.hasExceedMaxAttempts(user.getUsername())){
+            user.setLocked(true);
+            userRepository.save(user);
+            LOGGER.warn("Account locked due to exceeding max login attempts: {}", user.getUsername());
+            throw new LockedException("Your account has been locked");
         }
     }
 }

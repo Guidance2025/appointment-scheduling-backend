@@ -7,6 +7,7 @@ import org.rocs.asa.domain.self.assesment.SelfAssessment;
 import org.rocs.asa.domain.self.request.SelfAssessmentRequest;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.user.User;
+import org.rocs.asa.exception.domain.EmptyFieldException;
 import org.rocs.asa.exception.domain.GuidanceStaffNotFoundException;
 import org.rocs.asa.exception.domain.QuestionDoesNotExistException;
 import org.rocs.asa.repository.device.token.DeviceTokenRepository;
@@ -117,10 +118,10 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
     @Override
     public SelfAssessment studentResponse(SelfAssessmentRequest request) {
         if (request.getQuestionId() == null) {
-            throw new IllegalArgumentException("Question ID cannot be null");
+            throw new EmptyFieldException("Question ID cannot be null");
         }
         if (request.getResponseText() == null || request.getResponseText().trim().isEmpty()) {
-            throw new IllegalArgumentException("Response text cannot be empty");
+            throw new EmptyFieldException("Response text cannot be empty");
         }
         Student authenticatedStudent = studentService.findByAuthenticatedStudent();
 
