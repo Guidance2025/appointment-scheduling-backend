@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+
 @Component
 public class LoginAttemptService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginAttemptService.class);
@@ -16,9 +17,6 @@ public class LoginAttemptService {
     private static final int ATTEMPTS_INCREMENT = 1;
     private LoadingCache<String, Integer> loginAttemptCache;
 
-    /**
-     * initialize the loginAttemptsService that holds 100 entries and expires within 15 minutes
-     * */
     public LoginAttemptService() {
         super();
         loginAttemptCache = CacheBuilder.newBuilder()
@@ -31,38 +29,40 @@ public class LoginAttemptService {
                     }
                 });
     }
-    /**
-     * this adds the user to login attempts and increments the login attempts of the user
-     * @param username username to add to login attempt cache
-     * */
+
     public void addUserToLoginAttemptCache(String username){
         int loginAttempts = 0;
         try {
             loginAttempts = loginAttemptCache.get(username) + ATTEMPTS_INCREMENT;
+            loginAttemptCache.put(username, loginAttempts);
+
+            LOGGER.warn("⚠ Username: {} | Failed Attempts: {}/{}",
+                    username, loginAttempts, MAX_NUMBER_OF_ATTEMPTS);
+
         } catch (ExecutionException e) {
-            LOGGER.error("Execution Exception occurred{}", e);
+            LOGGER.error(" Execution Exception occurred: {}", e.getMessage());
         }
-        loginAttemptCache.put(username,loginAttempts);
     }
 
-    /**
-     * removes the user from login attempt cache
-     * @param username username to remove from login attempt cache
-     */
     public void evictUserToLoginAttemptCache(String username){
         loginAttemptCache.invalidate(username);
+        LOGGER.info(" Login attempts cleared for username: {}", username);
     }
-    /**
-     * checks if the login attempts of the user exceeds the maximum attempts allowed
-     *
-     * @param username username to check if the max attempts exceeds
-     * @return true if the user has reached or exceeded the maximum allowed login attempts
-     * */
+
     public boolean hasExceedMaxAttempts(String username){
         try {
-            return loginAttemptCache.get(username) > MAX_NUMBER_OF_ATTEMPTS;
+            int attempts = loginAttemptCache.get(username);
+            boolean exceeded = attempts >= MAX_NUMBER_OF_ATTEMPTS;
+            LOGGER.warn(" CHECK ATTEMPTS - Username: {}, Current: {}, Max: {}, Exceeded: {}",
+                    username, attempts, MAX_NUMBER_OF_ATTEMPTS, exceeded);
+            if (exceeded) {
+                LOGGER.error(" MAX LOGIN ATTEMPTS REACHED - Username: {} ({}/{})",
+                        username, attempts, MAX_NUMBER_OF_ATTEMPTS);
+            }
+            return exceeded;
+
         } catch (ExecutionException e) {
-            LOGGER.error("Execution Exception occurred{}", e);
+            LOGGER.error("Execution Exception occurred: {}", e.getMessage());
         }
         return false;
     }

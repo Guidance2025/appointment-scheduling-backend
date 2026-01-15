@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The {@code AppointmentScheduler} class is responsible for automatically updating
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class AppointmentScheduler {
+
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AppointmentScheduler.class);
     private final AppointmentService appointmentService;
@@ -43,7 +45,7 @@ public class AppointmentScheduler {
      * Execution time is logged for monitoring purposes, and any exceptions are
      * captured and logged.
      */
-    @Scheduled(fixedRate = 100_000)
+    @Scheduled(fixedRate = 100_00)
     public void updateAppointmentStatuses() {
         long startTime = System.currentTimeMillis();
 
@@ -78,5 +80,23 @@ public class AppointmentScheduler {
             LOGGER.error("Failed to send appointment reminders: {}", e.getMessage(), e);
         }
     }
+    @Scheduled(fixedRate = 100_00)
+    @Transactional
+    public void cleanupExpiredBlocks() {
+        appointmentService.cleanupExpiredAvailabilityBlocks();
+        LOGGER.info("Block Availability Check completed");
+    }
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void expirePendingRequests() {
+        appointmentService.expirePendingRequests();
+        LOGGER.info("Pending request expiration check completed");
+    }
 
+    @Scheduled(fixedRate = 60000)
+    @Transactional
+    public void expireRescheduleRequest() {
+        appointmentService.expireReschedulePendingRequests();
+        LOGGER.info("Pending request expiration check completed");
+    }
 }

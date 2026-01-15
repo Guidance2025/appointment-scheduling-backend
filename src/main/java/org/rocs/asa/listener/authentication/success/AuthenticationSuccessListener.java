@@ -1,6 +1,7 @@
 package org.rocs.asa.listener.authentication.success;
 
 import org.rocs.asa.service.login.attempts.LoginAttemptService;
+import org.rocs.asa.service.user.impl.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
@@ -31,7 +32,7 @@ public class AuthenticationSuccessListener {
     public void onAuthenticationSuccessListener(AuthenticationSuccessEvent authenticationSuccessEvent){
         Object principal = authenticationSuccessEvent.getAuthentication().getPrincipal();
 
-        if(principal instanceof String){
+        if(principal instanceof UserServiceImpl){
             String username = (String) authenticationSuccessEvent.getAuthentication().getPrincipal();
             loginAttemptsService.evictUserToLoginAttemptCache(username);
         }

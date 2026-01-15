@@ -1,7 +1,9 @@
 package org.rocs.asa.controller.appointment;
 
+import jakarta.validation.Path;
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.appointment.Appointment;
+import org.rocs.asa.domain.appointment.request.UpdateAppointmentRequest;
 import org.rocs.asa.domain.appointment.response.BookedSlotsResponse;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.service.appointment.AppointmentService;
@@ -40,6 +42,7 @@ public class AppointmentController {
         this.appointmentService = appointmentService;
         this.guidanceService = guidanceService;
     }
+
     /**
      * {@code createAppointment} used to create a new appointment in the system
      * @param request that contains the appointment details
@@ -53,13 +56,12 @@ public class AppointmentController {
 
     /**
      * {@code getAppointmentFindByStatus} used to retrieve appointments filtered by status and guidance ID
-     * @param status that indicates the appointment status to filter
      * @param guidanceId that identifies the guidance staff
      * @return ResponseEntity containing list of appointments matching the criteria, and Http Status
      */
-    @GetMapping("/appointment/{status}/{guidanceId}")
-    public ResponseEntity<List<Appointment>> getAppointmentFindByStatus(@PathVariable String status, @PathVariable Long guidanceId) {
-        List<Appointment> allAppointments = appointmentService.findAppointmentByStatus(guidanceId, status);
+    @GetMapping("/appointment/{guidanceId}")
+    public ResponseEntity<List<Appointment>> getAppointmentFindByStatus( @PathVariable Long guidanceId ) {
+        List<Appointment> allAppointments = appointmentService.findAppointmentByStatus(guidanceId);
         return ResponseEntity.ok(allAppointments);
     }
 
@@ -87,6 +89,18 @@ public class AppointmentController {
     }
 
     /**
+     * Handles counselor response to reschedule requests
+     * @param appointmentId that identifies the appointment
+     * @param data that contains the counselor's response (ACCEPT/DECLINE)
+     * @return ResponseEntity containing the updated appointment object, and Http Status
+     */
+    @PostMapping("/{appointmentId}/reschedule/response")
+    public ResponseEntity<Appointment> counselorRescheduleResponse(@PathVariable Long appointmentId, @RequestBody Map<String, String> data) {
+        Appointment response = appointmentService.counselorResponseToReschedule(appointmentId, data);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * {@code getAppointmentByGuidanceStaff} used to retrieve all appointments for a specific guidance staff member
      * @param employeeNumber that identifies the guidance staff employee
      * @return ResponseEntity containing list of appointments assigned to the guidance staff, and Http Status
@@ -96,20 +110,39 @@ public class AppointmentController {
         List<Appointment> guidanceStaffAppointment = appointmentService.getAppointmentByGuidanceStaff(employeeNumber);
         return ResponseEntity.ok(guidanceStaffAppointment);
     }
+
     @GetMapping("/booked-slots")
     public ResponseEntity<List<BookedSlotsResponse>> getBookedSlots(@RequestParam String date) {
-            List<BookedSlotsResponse> bookedSlotResponses = appointmentService.getBookedSlots(date);
-            return ResponseEntity.ok(bookedSlotResponses);
+        List<BookedSlotsResponse> bookedSlotResponses = appointmentService.getBookedSlots(date);
+        return ResponseEntity.ok(bookedSlotResponses);
     }
+
     @GetMapping("/all")
     ResponseEntity<List<GuidanceStaff>> findAuthenticatedGuidanceStaff() {
         List<GuidanceStaff> guidanceStaff = guidanceService.findActiveGuidanceStaff();
         return ResponseEntity.ok(guidanceStaff);
     }
+
+    /**
+     * Handles guidance staff response to appointment requests
+     * @param appointmentId that identifies the appointment
+     * @param action that contains the guidance staff's response (ACCEPT/DECLINE)
+     * @return ResponseEntity containing the updated appointment object, and Http Status
+     */
     @PostMapping("/{appointmentId}/guidance/response")
     public ResponseEntity<Appointment> guidanceResponseToAppointmentRequest(@PathVariable Long appointmentId, @RequestBody Map<String,String> action) {
-        Appointment response = appointmentService.guidanceStaffResponse(appointmentId,action);
+        Appointment response = appointmentService.guidanceStaffResponse(appointmentId, action);
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/update")
+    public ResponseEntity<Appointment> updateAppointment(@RequestBody UpdateAppointmentRequest request) {
+        return ResponseEntity.ok(appointmentService.updateCounselorAppointment(request));
+    }
+
+    @PutMapping("/delete/{appointmentId}")
+    public ResponseEntity<String> cancelAppointment(@PathVariable Long appointmentId) {
+        appointmentService.cancelAppointment(appointmentId);
+        return ResponseEntity.ok("Cancelled Appointment Successfully");
+    }
 }

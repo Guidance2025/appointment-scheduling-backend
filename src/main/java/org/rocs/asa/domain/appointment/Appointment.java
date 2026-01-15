@@ -50,4 +50,30 @@ public class Appointment {
 
     @Column(name = "notes")
     private String notes;
+
+    @Version
+    private Long version;
+
+    @Transient
+    private Integer rescheduleCount;
+
+    public int getRescheduleCount() {
+        if (this.notes == null || this.notes.isEmpty()) {
+            return 0;
+        }
+
+        int count = 0;
+        String[] lines = this.notes.split("\n");
+
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("RESCHEDULE_APPROVED|") ||
+                    trimmed.startsWith("RESCHEDULE_DECLINED|")) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
 }

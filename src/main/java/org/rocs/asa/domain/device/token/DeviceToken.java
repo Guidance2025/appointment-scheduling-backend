@@ -16,7 +16,7 @@ public class DeviceToken {
     @Column(name = "token_id")
     private Long id;
 
-    @OneToOne(cascade = CascadeType.ALL)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

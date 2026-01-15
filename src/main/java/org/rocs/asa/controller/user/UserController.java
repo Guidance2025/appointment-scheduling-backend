@@ -1,22 +1,24 @@
 package org.rocs.asa.controller.user;
 
 import jakarta.mail.MessagingException;
+import org.rocs.asa.domain.http.response.HttpResponse;
 import org.rocs.asa.domain.password.reset.PasswordResetRequest;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.domain.user.principal.UserPrincipal;
 import org.rocs.asa.exception.domain.InvalidTokenException;
+import org.rocs.asa.service.login.attempts.LoginAttemptService;
 import org.rocs.asa.service.notification.NotificationService;
 import org.rocs.asa.service.password.reset.PasswordResetTokenService;
 import org.rocs.asa.service.user.UserService;
 import org.rocs.asa.utils.security.jwt.token.provider.JwtTokenProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.*;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.Map;
 
@@ -30,11 +32,14 @@ import static org.rocs.asa.utils.security.constant.SecurityConstant.JWT_TOKEN_HE
 @CrossOrigin("*")
 public class UserController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserController.class);
+
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider jwtTokenProvider;
-    private  NotificationService notificationService;
+    private NotificationService notificationService;
     private PasswordResetTokenService passwordResetService;
+    private LoginAttemptService loginAttemptService;  // ✅ ADDED
 
     /**
      * Constructs a new {@code UserController} with the required dependencies.
@@ -47,12 +52,18 @@ public class UserController {
      * @param jwtTokenProvider the provider utility for generating and validating JWT used in secure authentication
      */
     @Autowired
-    public UserController(UserService userService, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider, NotificationService notificationService, PasswordResetTokenService passwordResetService) {
+    public UserController(UserService userService,
+                          AuthenticationManager authenticationManager,
+                          JwtTokenProvider jwtTokenProvider,
+                          NotificationService notificationService,
+                          PasswordResetTokenService passwordResetService,
+                          LoginAttemptService loginAttemptService) {
         this.userService = userService;
         this.authenticationManager = authenticationManager;
         this.jwtTokenProvider = jwtTokenProvider;
         this.notificationService = notificationService;
         this.passwordResetService = passwordResetService;
+        this.loginAttemptService = loginAttemptService;
     }
 
     /**
@@ -62,16 +73,51 @@ public class UserController {
      * @return ResponseEntity containing the message, JWT Header and the Http Status
      * */
     @PostMapping("/login")
-    public ResponseEntity<Map<String, Object>> login(@RequestBody User user){
-        authUserLogin(user.getUsername(), user.getPassword());
-        User loginUser = this.userService.findUserByUsername(user.getUsername());
-        UserPrincipal userPrincipal = new UserPrincipal(loginUser);
-        HttpHeaders jwtHeader = provideJwtHeader(userPrincipal);
-        Map<String,Object> response = userService.buildLoginResponse(loginUser);
-        return new ResponseEntity<>(response,jwtHeader, HttpStatus.OK);
+    public ResponseEntity<?> login(@RequestBody User user) {
+        try {
+
+            authUserLogin(user.getUsername(), user.getPassword());
+            User loginUser = this.userService.findUserByUsername(user.getUsername());
+            UserPrincipal userPrincipal = new UserPrincipal(loginUser);
+            HttpHeaders jwtHeader = provideJwtHeader(userPrincipal);
+
+            loginAttemptService.evictUserToLoginAttemptCache(user.getUsername());
+
+            Map<String, Object> response = userService.buildLoginResponse(loginUser);
+            LOGGER.info(" User logged in successfully: {}", user.getUsername());
+            return new ResponseEntity<>(response, jwtHeader, HttpStatus.OK);
+
+        } catch (LockedException e) {
+            LOGGER.warn(" Login attempt for locked account: {}", user.getUsername());
+            return createHttpResponse(HttpStatus.LOCKED, "YOUR ACCOUNT HAS BEEN LOCKED");
+
+        } catch (DisabledException e) {
+            LOGGER.warn(" Login attempt for disabled account: {}", user.getUsername());
+            return createHttpResponse(HttpStatus.UNAUTHORIZED, "YOUR ACCOUNT HAS BEEN DISABLED");
+
+        } catch (BadCredentialsException e) {
+            LOGGER.warn(" Invalid credentials for username: {}", user.getUsername());
+            return createHttpResponse(HttpStatus.UNAUTHORIZED, "USERNAME/PASSWORD IS INCORRECT");
+
+        } catch (InternalAuthenticationServiceException e) {
+            LOGGER.error(" Internal authentication error for username {}: ", user.getUsername(), e);
+
+            if (e.getCause() instanceof LockedException) {
+                LOGGER.warn(" Account locked (wrapped exception): {}", user.getUsername());
+                return createHttpResponse(HttpStatus.LOCKED, "YOUR ACCOUNT HAS BEEN LOCKED");
+            }
+            else if (e.getCause() instanceof DisabledException) {
+                LOGGER.warn(" Account disabled (wrapped exception): {}", user.getUsername());
+                return createHttpResponse(HttpStatus.UNAUTHORIZED, "YOUR ACCOUNT HAS BEEN DISABLED");
+            }
+            else {
+                return createHttpResponse(HttpStatus.UNAUTHORIZED, "USERNAME/PASSWORD IS INCORRECT");
+            }
+        } catch (Exception e) {
+            LOGGER.error(" Login error for username {}: ", user.getUsername(), e);
+            return createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR, "LOGIN FAILED");
+        }
     }
-
-
     /**
      * Initiates password reset process
      * Sends reset link to user's email
@@ -99,16 +145,32 @@ public class UserController {
     @GetMapping("/password-reset/verify")
     public ResponseEntity<Map<String, String>> verifyPasswordReset(@RequestParam String token) throws InvalidTokenException {
         this.userService.verifyAndCompletePasswordReset(token);
-        Map<String, String> response = Map.of("success", "Password successfully changed. You can now login with your new password." );
+        Map<String, String> response = Map.of("success", "Password successfully changed. You can now login with your new password.");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    private void authUserLogin(String username, String password){
-        this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username,password));
+    private void authUserLogin(String username, String password) {
+        this.authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
     }
-    private HttpHeaders provideJwtHeader(UserPrincipal userPrincipal){
+
+    private HttpHeaders provideJwtHeader(UserPrincipal userPrincipal) {
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(JWT_TOKEN_HEADER,this.jwtTokenProvider.generateJwtToken(userPrincipal));
+        httpHeaders.add(JWT_TOKEN_HEADER, this.jwtTokenProvider.generateJwtToken(userPrincipal));
         return httpHeaders;
+    }
+
+    /**
+     * Helper method to create consistent HTTP error responses
+     */
+    private ResponseEntity<HttpResponse> createHttpResponse(HttpStatus status, String message) {
+        return new ResponseEntity<>(
+                new HttpResponse(
+                        status.value(),
+                        status,
+                        status.getReasonPhrase().toUpperCase(),
+                        message.toUpperCase()
+                ),
+                status
+        );
     }
 }

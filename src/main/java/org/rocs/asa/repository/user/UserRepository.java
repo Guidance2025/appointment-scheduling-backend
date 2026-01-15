@@ -4,6 +4,7 @@ import org.rocs.asa.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * {@code PersonRepository} is an interface of User repository
@@ -32,4 +33,5 @@ public interface UserRepository extends JpaRepository<User,Long> {
 
     User findUserByPersonContactNumber(String contactNumber);
 
+    List<User> findByUserIdIn(Set<String> userIds);
 }
