@@ -84,10 +84,10 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
             throw new IllegalArgumentException("You can only create up to 5 questions.");
         }
 
-        Category category = categoryRepository.findByCategoryNameIgnoreCase(categoryName)
+        Category category = categoryRepository.findByCategoryNameIgnoreCase("SELF ASSESSMENT")
                 .orElseGet(() -> {
                     Category newCat = new Category();
-                    newCat.setCategoryName(categoryName);
+                    newCat.setCategoryName("SELF ASSESSMENT");
                     return categoryRepository.save(newCat);
                 });
 

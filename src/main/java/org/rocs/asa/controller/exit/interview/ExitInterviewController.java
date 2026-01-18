@@ -24,8 +24,7 @@ public class ExitInterviewController {
     @PostMapping("/create/{id}")
     public ResponseEntity<List<Questions>> createExitInterviewQuestions(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         List<String> questionTexts = (List<String>) request.get("questionTexts");
-        String categoryName = (String) request.get("categoryName");
-        List<Questions> questions = exitInterviewService.createMultipleExitInterviewQuestions(id, questionTexts, categoryName);
+        List<Questions> questions = exitInterviewService.createMultipleExitInterviewQuestions(id, questionTexts);
         return ResponseEntity.ok(questions);
     }
 

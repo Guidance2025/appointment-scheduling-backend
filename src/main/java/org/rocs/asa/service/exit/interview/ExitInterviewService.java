@@ -7,7 +7,7 @@ import org.rocs.asa.domain.questions.Questions;
 import java.util.List;
 
 public interface ExitInterviewService {
-    List<Questions> createMultipleExitInterviewQuestions(Long guidanceStaffId, List<String> questionText, String categoryName);
+    List<Questions> createMultipleExitInterviewQuestions(Long guidanceStaffId, List<String> questionText);
     List<Questions> findByGuidanceStaffId(Long guidanceStaffId);
     List<Questions> findAllQuestions();
     ExitInterview studentResponse(ExitInterviewRequest request);

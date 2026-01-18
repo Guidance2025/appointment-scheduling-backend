@@ -82,10 +82,10 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
             throw new IllegalArgumentException("You can only create up to 5 questions.");
         }
 
-        Category category = categoryRepository.findByCategoryNameIgnoreCase(categoryName)
+        Category category = categoryRepository.findByCategoryNameIgnoreCase("EXIT INTERVIEW")
                 .orElseGet(() -> {
                     Category newCat = new Category();
-                    newCat.setCategoryName(categoryName);
+                    newCat.setCategoryName("EXIT INTERVIEW");
                     return categoryRepository.save(newCat);
                 });
 

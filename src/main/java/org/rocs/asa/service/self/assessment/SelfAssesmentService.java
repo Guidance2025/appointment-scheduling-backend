@@ -7,7 +7,7 @@ import org.rocs.asa.domain.self.request.SelfAssessmentRequest;
 import java.util.List;
 
 public interface SelfAssesmentService {
-    List<Questions> createMultipleSelfAssessmentQuestions(Long guidanceStaffId, List<String> questionText, String categoryName);
+    List<Questions> createMultipleSelfAssessmentQuestions(Long guidanceStaffId, List<String> questionText);
     List<Questions> findByGuidanceStaffId(Long guidanceStaffId);
     List<Questions> findAllQuestions();
     SelfAssessment studentResponse (SelfAssessmentRequest request);

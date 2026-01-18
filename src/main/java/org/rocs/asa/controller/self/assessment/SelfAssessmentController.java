@@ -24,8 +24,7 @@ public class SelfAssessmentController {
     @PostMapping("/create/{id}")
     public ResponseEntity<List<Questions>> createCreateQuestions(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         List<String> questionTexts = (List<String>) request.get("questionTexts");
-        String categoryName = (String) request.get("categoryName");
-        List<Questions> questions = assesmentService.createMultipleSelfAssessmentQuestions(id, questionTexts, categoryName);
+        List<Questions> questions = assesmentService.createMultipleSelfAssessmentQuestions(id, questionTexts);
         return ResponseEntity.ok(questions);
     }
 
