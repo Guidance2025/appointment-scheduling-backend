@@ -1,6 +1,5 @@
 package org.rocs.asa.service.self.assessment.impl;
 
-import com.google.api.gax.rpc.NotFoundException;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.questions.Questions;
 import org.rocs.asa.domain.self.assesment.SelfAssessment;
