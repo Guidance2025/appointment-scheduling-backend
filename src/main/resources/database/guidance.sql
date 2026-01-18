@@ -68,15 +68,7 @@ create table tbl_login (
     is_locked number(1,0),
     primary key (login_id));
 
-create table tbl_section (
-    section_id number(20,0) generated as identity
-        constraint TBL_SECTION_ID_NOT_NULL not null,
-    organization varchar2(64 char),
-    cluster_name varchar2(255 char),
-    section_name varchar2(16 char),
-    cluster_head varchar2(64 char),
-    course varchar2(255 char),
-    primary key (section_id));
+
 
 create table tbl_category (
     category_id number(20,0) generated as identity

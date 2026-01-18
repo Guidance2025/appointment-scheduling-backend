@@ -4,9 +4,11 @@ import jakarta.persistence.EntityNotFoundException;
 import org.rocs.asa.domain.category.Category;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.post.Post;
+import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.dto.CreatePostRequest;
 import org.rocs.asa.repository.category.CategoryRepository;
 import org.rocs.asa.repository.post.PostRepository;
+import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.service.guidance.GuidanceService;
 import org.rocs.asa.service.post.PostService;
 import org.slf4j.Logger;
@@ -20,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -30,15 +33,18 @@ public class PostServiceImpl implements PostService {
     private final CategoryRepository categoryRepository;
     private final GuidanceService guidanceService;
     private final JdbcTemplate jdbcTemplate;
+    private final StudentRepository studentRepository;
 
     public PostServiceImpl(PostRepository postRepository,
                            CategoryRepository categoryRepository,
                            GuidanceService guidanceService,
-                           JdbcTemplate jdbcTemplate) {
+                           JdbcTemplate jdbcTemplate,
+                           StudentRepository studentRepository) {
         this.postRepository = postRepository;
         this.categoryRepository = categoryRepository;
         this.guidanceService = guidanceService;
         this.jdbcTemplate = jdbcTemplate;
+        this.studentRepository = studentRepository;
     }
 
     @Override
@@ -67,39 +73,23 @@ public class PostServiceImpl implements PostService {
 
         if (content.length() > 500) content = content.substring(0, 500);
 
+        // Single sectionId
+        Long sectionId = request.getSectionId();
+        boolean isRestrictedCategory = "Announcement".equalsIgnoreCase(capped64) || "Events".equalsIgnoreCase(capped64);
+        if (isRestrictedCategory && sectionId == null) {
+            throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
+        }
+
+        // Duplicate check with single section
         Integer exists = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) " +
-                        "FROM tbl_posts p " +
-                        "JOIN tbl_category c ON p.category_id = c.category_id " +
-                        "WHERE p.employee_number = ? " +
-                        "  AND NVL(p.section_id, -1) = NVL(?, -1) " +
-                        "  AND p.post_content = ? " +
-                        "  AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
-                        "  AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND",
-                Integer.class,
-                employeeNumber, request.getSectionId(), content, capped64
+                "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
+                        "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
+                        "AND NVL(p.section_id, -1) = NVL(?, -1) AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND",
+                Integer.class, employeeNumber, capped64, sectionId
         );
 
         if (exists != null && exists > 0) {
-            LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={}, content='{}')",
-                    employeeNumber, capped64, request.getSectionId(), content);
-
-            // Optionally return the latest matching post so caller still gets something
-            List<Long> ids = jdbcTemplate.queryForList(
-                    "SELECT p.post_id " +
-                            "FROM tbl_posts p " +
-                            "JOIN tbl_category c ON p.category_id = c.category_id " +
-                            "WHERE p.employee_number = ? " +
-                            "  AND NVL(p.section_id, -1) = NVL(?, -1) " +
-                            "  AND p.post_content = ? " +
-                            "  AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
-                            "ORDER BY p.posted_date DESC FETCH FIRST 1 ROW ONLY",
-                    Long.class,
-                    employeeNumber, request.getSectionId(), content, capped64
-            );
-            if (!ids.isEmpty()) {
-                return postRepository.findById(ids.get(0)).orElse(null);
-            }
+            LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={})", employeeNumber, capped64, sectionId);
         }
 
         Category toSave = new Category();
@@ -109,13 +99,13 @@ public class PostServiceImpl implements PostService {
         Post post = new Post();
         post.setEmployeeNumber(employeeNumber);
         post.setCategoryId(savedCategory.getCategoryId());
-        post.setSectionId(request.getSectionId());
         post.setPostContent(content);
         post.setPostedDate(LocalDateTime.now());
+        post.setSectionId(sectionId);
 
         Post saved = postRepository.save(post);
-        LOGGER.info("Post created id={} by employeeNumber={} with NEW category id={} name='{}'",
-                saved.getPostId(), employeeNumber, savedCategory.getCategoryId(), savedCategory.getCategoryName());
+        LOGGER.info("Post created id={} by employeeNumber={} with category '{}' and section={}",
+                saved.getPostId(), employeeNumber, savedCategory.getCategoryName(), sectionId);
         return saved;
     }
 
@@ -200,7 +190,7 @@ public class PostServiceImpl implements PostService {
                         "    LEFT JOIN tbl_person per ON gs.person_id = per.id " +
                         "    WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
                         "  ) t " +
-                        "  WHERE t.rn = 1 " +           // one row per post_id
+                        "  WHERE t.rn = 1 " +
                         "  ORDER BY t.posted_date DESC " +
                         ") WHERE ROWNUM <= ?";
 
@@ -250,5 +240,42 @@ public class PostServiceImpl implements PostService {
         }
         postRepository.deleteById(postId);
         LOGGER.info("Post deleted id={}", postId);
+    }
+
+    @Override
+    public List<Map<String, Object>> getAllCategories() {
+        return categoryRepository.findAll().stream()
+                .map(category -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("categoryId", category.getCategoryId());
+                    map.put("categoryName", category.getCategoryName());
+                    return map;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Map<String, Object>> getPostsForStudent(Long studentId, int limit) {
+        Long studentSectionId = getStudentSectionId(studentId);
+
+        String sql = "SELECT * FROM ( " +
+                "  SELECT p.post_id, p.post_content, p.posted_date, c.category_name, " +
+                "         s.section_name, s.organization, " +
+                "         TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by " +
+                "  FROM tbl_posts p " +
+                "  JOIN tbl_category c ON p.category_id = c.category_id " +
+                "  LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
+                "  LEFT JOIN tbl_guidance_staff gs ON p.employee_number = gs.employee_number " +
+                "  LEFT JOIN tbl_person per ON gs.person_id = per.id " +
+                "  WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
+                "    AND (p.section_id IS NULL OR p.section_id = ?) " +
+                "  ORDER BY p.posted_date DESC " +
+                ") WHERE ROWNUM <= ?";
+        return jdbcTemplate.queryForList(sql, studentSectionId, limit);
+    }
+
+    private Long getStudentSectionId(Long studentId) {
+        Student student = studentRepository.findById(studentId).orElse(null);
+        return student != null && student.getSection() != null ? student.getSection().getId() : null;
     }
 }

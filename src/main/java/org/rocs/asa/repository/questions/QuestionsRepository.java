@@ -10,7 +10,15 @@ import java.util.List;
 public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     List<Questions> findByGuidanceStaffId(Long guidanceStaffId);
 
-    @Query("SELECT q FROM Questions q WHERE q.id NOT IN " +
-            "(SELECT sa.question.id FROM SelfAssessment sa WHERE sa.student.id = :studentId)")
-    List<Questions> findUnansweredQuestionByStudentId(@Param("studentId") Long studentId);
+    @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName")
+    List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
+
+    @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT ei.question.id FROM ExitInterview ei WHERE ei.student.id = :studentId)")
+    List<Questions> findUnansweredExitInterviewByStudentId(@Param("studentId") Long studentId, @Param("categoryName") String categoryName);
+
+    @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT sa.question.id FROM SelfAssessment sa WHERE sa.student.id = :studentId)")
+    List<Questions> findUnansweredSelfAssessmentByStudentId(@Param("studentId") Long studentId, @Param("categoryName") String categoryName);
+//    @Query("SELECT q FROM Questions q WHERE q.id NOT IN " +
+//            "(SELECT sa.question.id FROM SelfAssessment sa WHERE sa.student.id = :studentId)")
+//    List<Questions> findUnansweredQuestionByStudentId(@Param("studentId") Long studentId);
 }

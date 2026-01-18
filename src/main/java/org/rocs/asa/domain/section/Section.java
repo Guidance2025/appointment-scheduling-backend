@@ -20,7 +20,7 @@ public class Section{
     @Column(name = "cluster_head")
     private String clusterHead;
 
-    @Column(name = "section_name")
+    @Column(name = "section_name", nullable = false, unique = true)
     private String sectionName;
 
     private String course;

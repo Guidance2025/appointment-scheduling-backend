@@ -1,6 +1,5 @@
 package org.rocs.asa.controller.self.assessment;
 
-import org.apache.coyote.Response;
 import org.rocs.asa.domain.questions.Questions;
 import org.rocs.asa.domain.self.assesment.SelfAssessment;
 import org.rocs.asa.domain.self.request.SelfAssessmentRequest;
@@ -10,12 +9,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/self-assessment")
 public class SelfAssessmentController {
     private SelfAssesmentService assesmentService;
-
 
     @Autowired
     public SelfAssessmentController(SelfAssesmentService assesmentService) {
@@ -23,8 +22,10 @@ public class SelfAssessmentController {
     }
 
     @PostMapping("/create/{id}")
-    public ResponseEntity<List<Questions>> createCreateQuestions(@PathVariable Long id, @RequestBody List<String> questionText) {
-       List<Questions> questions = assesmentService.createMultipleSelfAssessmentQuestions(id,questionText);
+    public ResponseEntity<List<Questions>> createCreateQuestions(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+        List<String> questionTexts = (List<String>) request.get("questionTexts");
+        String categoryName = (String) request.get("categoryName");
+        List<Questions> questions = assesmentService.createMultipleSelfAssessmentQuestions(id, questionTexts, categoryName);
         return ResponseEntity.ok(questions);
     }
 

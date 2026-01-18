@@ -125,9 +125,15 @@ public class ExceptionHandling implements ErrorController {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body("This time slot was just booked. Please choose another time.");
     }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", ex.getMessage()));
+    }
     @ExceptionHandler(PostNotFoundException.class)
-    public ResponseEntity<HttpResponse> postNotFoundException(PostNotFoundException exception) {
-        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    public ResponseEntity<?> handlePostNotFound(PostNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
     }
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<?> notFound(NotFoundException ex) {
