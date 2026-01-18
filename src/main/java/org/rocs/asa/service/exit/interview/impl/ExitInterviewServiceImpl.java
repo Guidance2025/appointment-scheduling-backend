@@ -1,22 +1,23 @@
-package org.rocs.asa.service.self.assessment.impl;
+package org.rocs.asa.service.exit.interview.impl;
 
+import com.google.api.gax.rpc.NotFoundException;
+import org.rocs.asa.domain.exit.interview.ExitInterview;
+import org.rocs.asa.domain.exit.request.ExitInterviewRequest;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.questions.Questions;
-import org.rocs.asa.domain.self.assesment.SelfAssessment;
-import org.rocs.asa.domain.self.request.SelfAssessmentRequest;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.exception.domain.EmptyFieldException;
 import org.rocs.asa.exception.domain.GuidanceStaffNotFoundException;
 import org.rocs.asa.exception.domain.QuestionDoesNotExistException;
 import org.rocs.asa.repository.device.token.DeviceTokenRepository;
+import org.rocs.asa.repository.exit.interview.ExitInterviewRepository;
 import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
 import org.rocs.asa.repository.questions.QuestionsRepository;
-import org.rocs.asa.repository.self.assesment.SelfAssessmentRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.repository.user.UserRepository;
+import org.rocs.asa.service.exit.interview.ExitInterviewService;
 import org.rocs.asa.service.notification.NotificationService;
-import org.rocs.asa.service.self.assessment.SelfAssesmentService;
 import org.rocs.asa.service.student.StudentService;
 import org.rocs.asa.domain.category.Category;
 import org.rocs.asa.repository.category.CategoryRepository;
@@ -33,30 +34,32 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class SelfAssessmentServiceImpl implements SelfAssesmentService {
-    private static Logger LOGGER = LoggerFactory.getLogger(SelfAssessment.class);
+public class ExitInterviewServiceImpl implements ExitInterviewService {
+    private static Logger LOGGER = LoggerFactory.getLogger(ExitInterviewServiceImpl.class);
 
     private GuidanceStaffRepository guidanceStaffRepository;
     private QuestionsRepository questionsRepository;
-    private SelfAssessmentRepository selfAssessmentRepository;
+    private ExitInterviewRepository exitInterviewRepository;
     private StudentRepository studentRepository;
     private StudentService studentService;
     private NotificationService notificationService;
     private UserRepository userRepository;
     private DeviceTokenRepository deviceTokenRepository;
     private CategoryRepository categoryRepository;
+
     @Autowired
-    public SelfAssessmentServiceImpl(GuidanceStaffRepository guidanceStaffRepository,
-                                     QuestionsRepository questionsRepository,
-                                     SelfAssessmentRepository selfAssessmentRepository,
-                                     StudentRepository studentRepository,
-                                     StudentService studentService,
-                                     NotificationService notificationService,
-                                     UserRepository userRepository,DeviceTokenRepository deviceTokenRepository,
-                                     CategoryRepository categoryRepository) {
+    public ExitInterviewServiceImpl(GuidanceStaffRepository guidanceStaffRepository,
+                                    QuestionsRepository questionsRepository,
+                                    ExitInterviewRepository exitInterviewRepository,
+                                    StudentRepository studentRepository,
+                                    StudentService studentService,
+                                    NotificationService notificationService,
+                                    UserRepository userRepository,
+                                    DeviceTokenRepository deviceTokenRepository,
+                                    CategoryRepository categoryRepository) {
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.questionsRepository = questionsRepository;
-        this.selfAssessmentRepository = selfAssessmentRepository;
+        this.exitInterviewRepository = exitInterviewRepository;
         this.studentRepository = studentRepository;
         this.studentService = studentService;
         this.notificationService = notificationService;
@@ -67,13 +70,9 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
 
     @Override
     @Transactional
-    public List<Questions> createMultipleSelfAssessmentQuestions(
-            Long guidanceStaffId,
-            List<String> questionTexts
-    ) {
+    public List<Questions> createMultipleExitInterviewQuestions(Long guidanceStaffId, List<String> questionTexts) {
         GuidanceStaff guidanceStaff = guidanceStaffRepository.findById(guidanceStaffId)
-                .orElseThrow(() -> new GuidanceStaffNotFoundException(
-                        "Guidance Staff not found with id: " + guidanceStaffId));
+                .orElseThrow(() -> new GuidanceStaffNotFoundException("Guidance Staff not found with id: " + guidanceStaffId));
 
         List<String> cleanedQuestions = questionTexts.stream()
                 .filter(text -> text != null && !text.trim().isEmpty())
@@ -83,10 +82,10 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
             throw new IllegalArgumentException("You can only create up to 5 questions.");
         }
 
-        Category category = categoryRepository.findByCategoryNameIgnoreCase("SELF ASSESSMENT")
+        Category category = categoryRepository.findByCategoryNameIgnoreCase("EXIT INTERVIEW")
                 .orElseGet(() -> {
                     Category newCat = new Category();
-                    newCat.setCategoryName("SELF ASSESSMENT");
+                    newCat.setCategoryName("EXIT INTERVIEW");
                     return categoryRepository.save(newCat);
                 });
 
@@ -108,14 +107,13 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
 
         notificationService.sendNotificationToAllStudent(
                 studentUserIds,
-                "New Self Assessment Questions",
-                 " Posted new self-assessment questions.",
-                "SELF ASSESSMENT UPDATE"
+                "New Exit Interview Questions",
+                "Posted new exit interview questions.",
+                "EXIT INTERVIEW UPDATE"
         );
 
         return questionsRepository.saveAll(questions);
     }
-
 
     @Override
     public List<Questions> findByGuidanceStaffId(Long guidanceStaffId) {
@@ -124,11 +122,11 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
 
     @Override
     public List<Questions> findAllQuestions() {
-        return questionsRepository.findByCategoryName("SELF ASSESSMENT");
+        return questionsRepository.findByCategoryName("EXIT INTERVIEW");
     }
 
     @Override
-    public SelfAssessment studentResponse(SelfAssessmentRequest request) {
+    public ExitInterview studentResponse(ExitInterviewRequest request) {
         if (request.getQuestionId() == null) {
             throw new EmptyFieldException("Question ID cannot be null");
         }
@@ -137,34 +135,33 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
         }
         Student authenticatedStudent = studentService.findByAuthenticatedStudent();
 
-        Questions question = questionsRepository.findById(request.getQuestionId()).orElseThrow
-                (() -> new QuestionDoesNotExistException("Question does not exist"));
+        Questions question = questionsRepository.findById(request.getQuestionId())
+                .orElseThrow(() -> new QuestionDoesNotExistException("Question does not exist"));
 
-        boolean checkAnsweredQuestion = selfAssessmentRepository.existsByStudentIdAndQuestionId(authenticatedStudent.getId(), request.getQuestionId());
+        boolean checkAnsweredQuestion = exitInterviewRepository.existsByStudentIdAndQuestionId(authenticatedStudent.getId(), request.getQuestionId());
 
-        if(checkAnsweredQuestion) {
+        if (checkAnsweredQuestion) {
             throw new QuestionDoesNotExistException("You have already answered this question");
         }
 
-
-        SelfAssessment saved = new SelfAssessment();
+        ExitInterview saved = new ExitInterview();
         saved.setResponseText(request.getResponseText());
         saved.setQuestion(question);
         saved.setStudent(authenticatedStudent);
-        saved.setResponseDate(LocalDateTime.now());
-        LOGGER.info("Assessment Submit Successfully");
+        saved.setSubmittedDate(LocalDate.now());
+        LOGGER.info("Exit Interview Response Submitted Successfully");
 
-       return selfAssessmentRepository.save(saved);
+        return exitInterviewRepository.save(saved);
     }
 
     @Override
-    public List<SelfAssessment> retrieveStudentResponse() {
-        return selfAssessmentRepository.findAll();
+    public List<ExitInterview> retrieveStudentResponse() {
+        return exitInterviewRepository.findAll();
     }
 
     @Override
     public List<Questions> getUnansweredQuestionsForAuthenticatedStudent() {
         Student student = studentService.findByAuthenticatedStudent();
-        return questionsRepository.findUnansweredSelfAssessmentByStudentId(student.getId(), "SELF ASSESSMENT");
+        return questionsRepository.findUnansweredExitInterviewByStudentId(student.getId(), "EXIT INTERVIEW");
     }
 }

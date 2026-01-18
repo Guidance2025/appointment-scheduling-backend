@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -25,7 +24,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.rocs.asa.exception.constants.ExceptionConstants.*;
-
 @RestControllerAdvice
 public class ExceptionHandling implements ErrorController {
 
@@ -110,7 +108,6 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<HttpResponse> rateLimitExceeded(RateLimitExceededException exception) {
         return createHttpResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage());  // FIXED: Changed from BAD_REQUEST to TOO_MANY_REQUESTS (429)
     }
-
     @ExceptionHandler(EmailAlreadyExistException.class)
     public ResponseEntity<HttpResponse> emailAlreadyExist(EmailAlreadyExistException exception) {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());

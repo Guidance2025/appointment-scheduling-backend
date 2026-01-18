@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "tbl_posts")
 public class Post {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "post_id")
@@ -14,9 +13,6 @@ public class Post {
 
     @Column(name = "employee_number", nullable = false)
     private Long employeeNumber;
-
-    @Column(name = "section_id")
-    private Long sectionId;
 
     @Column(name = "category_id", nullable = false)
     private Long categoryId;
@@ -30,12 +26,15 @@ public class Post {
     @Column(name = "posted_date")
     private LocalDateTime postedDate;
 
+    // Single sectionId instead of multiple sections
+    @Column(name = "section_id")
+    private Long sectionId;
+
+    // Getters and setters
     public Long getPostId() { return postId; }
     public void setPostId(Long postId) { this.postId = postId; }
     public Long getEmployeeNumber() { return employeeNumber; }
     public void setEmployeeNumber(Long employeeNumber) { this.employeeNumber = employeeNumber; }
-    public Long getSectionId() { return sectionId; }
-    public void setSectionId(Long sectionId) { this.sectionId = sectionId; }
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public Long getQuestionId() { return questionId; }
@@ -44,4 +43,6 @@ public class Post {
     public void setPostContent(String postContent) { this.postContent = postContent; }
     public LocalDateTime getPostedDate() { return postedDate; }
     public void setPostedDate(LocalDateTime postedDate) { this.postedDate = postedDate; }
+    public Long getSectionId() { return sectionId; }
+    public void setSectionId(Long sectionId) { this.sectionId = sectionId; }
 }
