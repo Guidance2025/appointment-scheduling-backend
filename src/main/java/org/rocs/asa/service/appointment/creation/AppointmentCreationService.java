@@ -65,15 +65,15 @@ public class AppointmentCreationService {
         LocalDateTime scheduledDateUTC = AppointmentMessageBuilder.toUTC(request.getScheduledDate());
         LocalDateTime endDateUTC = AppointmentMessageBuilder.toUTC(request.getEndDate());
 
-       //validator.validateAppointmentDates(scheduledDateUTC, endDateUTC);
+        validator.validateAppointmentDates(scheduledDateUTC, endDateUTC);
 
         Student student = findStudentByNumber(request.getStudent().getStudentNumber());
         GuidanceStaff guidanceStaff = guidanceService.findAuthenticatedGuidanceStaff();
 
-        validator.validatePendingAppointmentLimit(student.getId());
-        validator.validateStudentCounselorDailyLimit(student.getId(), guidanceStaff.getId(), scheduledDateUTC);
-        validator.validateStudentTimeAvailability(student.getId(), scheduledDateUTC, endDateUTC);
-        validator.validateGuidanceStaffAvailability(guidanceStaff.getId(), scheduledDateUTC, endDateUTC);
+       validator.validatePendingAppointmentLimit(student.getId());
+       validator.validateStudentCounselorDailyLimit(student.getId(), guidanceStaff.getId(), scheduledDateUTC);
+       validator.validateStudentTimeAvailability(student.getId(), scheduledDateUTC, endDateUTC);
+       validator.validateGuidanceStaffAvailability(guidanceStaff.getId(), scheduledDateUTC, endDateUTC);
 
         Appointment saved = createAndSave(student, guidanceStaff, request, scheduledDateUTC, endDateUTC);
 
@@ -113,7 +113,6 @@ public class AppointmentCreationService {
         LOGGER.info("Appointment created by student. ID: {}", saved.getAppointmentId());
         return saved;
     }
-
     /**
      * Creates and saves an appointment entity
      */

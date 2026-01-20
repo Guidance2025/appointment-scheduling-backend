@@ -25,13 +25,12 @@ import java.io.IOException;
 import java.util.Map;
 
 import static org.rocs.asa.exception.constants.ExceptionConstants.*;
-
 @RestControllerAdvice
 public class ExceptionHandling implements ErrorController {
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<HttpResponse> accountDisabledException(){
-        return createHttpResponse(HttpStatus.UNAUTHORIZED, ACCOUNT_DISABLED);  // FIXED: Changed from BAD_REQUEST to UNAUTHORIZED
+        return createHttpResponse(HttpStatus.UNAUTHORIZED, ACCOUNT_DISABLED);
     }
 
     @ExceptionHandler(LockedException.class)
@@ -41,17 +40,17 @@ public class ExceptionHandling implements ErrorController {
 
     @ExceptionHandler(MethodNotAllowedException.class)
     public ResponseEntity<HttpResponse> methodNotAllowedException(){
-        return createHttpResponse(HttpStatus.METHOD_NOT_ALLOWED, METHOD_IS_NOT_ALLOWED);  // FIXED: Changed from BAD_REQUEST to METHOD_NOT_ALLOWED
+        return createHttpResponse(HttpStatus.METHOD_NOT_ALLOWED, METHOD_IS_NOT_ALLOWED);
     }
 
     @ExceptionHandler(IOException.class)
     public ResponseEntity<HttpResponse> internalServerErrorException(){
-        return createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERR);  // FIXED: Changed from BAD_REQUEST to INTERNAL_SERVER_ERROR
+        return createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERR);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<HttpResponse> badCredentialException(){
-        return createHttpResponse(HttpStatus.UNAUTHORIZED, INCORRECT_CREDENTIAL);  // FIXED: Changed from BAD_REQUEST to UNAUTHORIZED
+        return createHttpResponse(HttpStatus.UNAUTHORIZED, INCORRECT_CREDENTIAL);
     }
 
     @ExceptionHandler(InternalAuthenticationServiceException.class)
@@ -61,7 +60,7 @@ public class ExceptionHandling implements ErrorController {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<HttpResponse> accessDeniedException(){
-        return createHttpResponse(HttpStatus.FORBIDDEN, INCORRECT_CREDENTIAL);  // FIXED: Changed message - should probably be NOT_ENOUGH_PERMISSION instead
+        return createHttpResponse(HttpStatus.FORBIDDEN, INCORRECT_CREDENTIAL);
     }
 
     @ExceptionHandler(TokenExpiredException.class)
@@ -71,12 +70,12 @@ public class ExceptionHandling implements ErrorController {
 
     @ExceptionHandler(EmailNotFoundException.class)
     public ResponseEntity<HttpResponse> emailNotFoundException(EmailNotFoundException exception){
-        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());  // FIXED: Changed from BAD_REQUEST to NOT_FOUND
+        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<HttpResponse> userNotFoundException(UserNotFoundException exception){
-        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());  // FIXED: Changed from BAD_REQUEST to NOT_FOUND
+        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
     @ExceptionHandler(NoResultException.class)
@@ -85,13 +84,13 @@ public class ExceptionHandling implements ErrorController {
     }
 
     @ExceptionHandler(UsernameExistsException.class)
-    public ResponseEntity<HttpResponse> usernameExistException(UsernameExistsException exception){  // FIXED: Parameter type was wrong (NoResultException -> UsernameExistsException)
-        return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());  // FIXED: Changed from BAD_REQUEST to CONFLICT
+    public ResponseEntity<HttpResponse> usernameExistException(UsernameExistsException exception){
+        return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<HttpResponse> usernameNotFoundException(UsernameNotFoundException exception){  // FIXED: Method name was duplicate
-        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());  // FIXED: Changed from BAD_REQUEST and now uses exception message
+    public ResponseEntity<HttpResponse> usernameNotFoundException(UsernameNotFoundException exception){
+        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
     @ExceptionHandler(AppointmentAlreadyExistException.class)
@@ -99,7 +98,7 @@ public class ExceptionHandling implements ErrorController {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
     @ExceptionHandler(DeviceTokenAlreadyExist.class)
-    public ResponseEntity<HttpResponse> deviceTokenAlreadyExistException(DeviceTokenAlreadyExist exception) {  // FIXED: Method name was duplicate, status should be CONFLICT not NOT_FOUND
+    public ResponseEntity<HttpResponse> deviceTokenAlreadyExistException(DeviceTokenAlreadyExist exception) {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
     @ExceptionHandler(WeekEndException.class)
@@ -108,9 +107,8 @@ public class ExceptionHandling implements ErrorController {
     }
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<HttpResponse> rateLimitExceeded(RateLimitExceededException exception) {
-        return createHttpResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage());  // FIXED: Changed from BAD_REQUEST to TOO_MANY_REQUESTS (429)
+        return createHttpResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage());
     }
-
     @ExceptionHandler(EmailAlreadyExistException.class)
     public ResponseEntity<HttpResponse> emailAlreadyExist(EmailAlreadyExistException exception) {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
@@ -125,15 +123,9 @@ public class ExceptionHandling implements ErrorController {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body("This time slot was just booked. Please choose another time.");
     }
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", ex.getMessage()));
-    }
     @ExceptionHandler(PostNotFoundException.class)
-    public ResponseEntity<?> handlePostNotFound(PostNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", ex.getMessage()));
+    public ResponseEntity<HttpResponse> postNotFoundException(PostNotFoundException exception) {
+        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<?> notFound(NotFoundException ex) {

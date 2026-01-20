@@ -1,0 +1,17 @@
+
+services:
+  backend:
+    build: .
+    container_name: appointment-backend
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:oracle:thin:@host.docker.internal:1521:orcl
+      DB_USERNAME: guidance
+      DB_PASSWORD: Changeme0
+      JWT_SECRET: thebigbrownfoxjumpsoverthelazydog
+      FRONTEND_URL: http://localhost:5173
+      FIREBASE_CONFIG: /app/firebase-service-account.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
