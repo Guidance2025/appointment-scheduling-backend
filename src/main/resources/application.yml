@@ -1,26 +1,27 @@
 spring:
   application:
     name: appointment-scheduling-api
-    base-url: "http://localhost:8080"
-    frontend-url: "http://localhost:5173"
+    base-url: ${APP_BASE_URL:http://localhost:8080}
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
     endpoints:
       password-reset-verify: "/user/password-reset/verify"
 
   datasource:
-    url: jdbc:oracle:thin:@localhost:1521:orcl
-    username: guidance
-    password: Changeme0
+    url: ${DB_URL:jdbc:oracle:thin:@localhost:1521:orcl}
+    username: ${DB_USERNAME:guidance}
+    password: ${DB_PASSWORD:Changeme0}
     driver-class-name: oracle.jdbc.OracleDriver
   jpa:
     show-sql: true
     hibernate:
       ddl-auto: update
+
 jwt:
-  secret : 'thebigbrownfoxjumpsoverthelazydog'
+  secret: ${JWT_SECRET:thebigbrownfoxjumpsoverthelazydog}
 
 firebase:
   project-id: appointment-notification-cc54d
-  service-account-file: firebase-service-account.json
+  service-account-file: ${FIREBASE_CONFIG:firebase-service-account.json}
 
 server:
   address: 0.0.0.0
@@ -33,10 +34,9 @@ password:
         hours: 24
 admin:
   default:
-    username: admin
-    password: 123123
-    email: admin@guidance.edu
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:123123}
+    email: ${ADMIN_EMAIL:admin@guidance.edu}
   auto-create: true
-
 appointment:
   max-pending-per-student: 1

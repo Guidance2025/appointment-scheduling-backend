@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     List<Questions> findByGuidanceStaffId(Long guidanceStaffId);
-
+    
     @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName")
     List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
 
