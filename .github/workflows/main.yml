@@ -24,24 +24,24 @@ jobs:
 
       - name: Create Firebase credentials
         run: |
-            mkdir -p src/main/resources
-            echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > src/main/resources/firebase-service-account.json
-            echo " Firebase file created"
+          mkdir -p src/main/resources
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > src/main/resources/firebase-service-account.json
+          echo "Firebase file created"
 
       - name: Build Docker images
-        run: docker-compose build
+        run: docker compose build
 
       - name: Start containers in background
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Wait for application to start
         run: sleep 15
 
       - name: Check if containers are running
-        run: docker-compose ps
+        run: docker compose ps
 
       - name: Check container logs
-        run: docker-compose logs
+        run: docker compose logs
 
       - name: Stop containers
-        run: docker-compose down
+        run: docker compose down
