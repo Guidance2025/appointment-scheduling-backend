@@ -28,7 +28,13 @@ public class PostController {
     @PostMapping("/posts")
     public ResponseEntity<Post> createPost(@Valid @RequestBody CreatePostRequest request) {
         Post post = postService.createPost(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(post);  // Completed the return statement
+        return ResponseEntity.status(HttpStatus.CREATED).body(post);
+    }
+
+    @PostMapping("/posts/quote")
+    public ResponseEntity<Post> createQuoteOfTheDay(@Valid @RequestBody CreatePostRequest request) {
+        Post post = postService.createQuoteOfTheDay(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(post);
     }
 
     @GetMapping("/posts")
