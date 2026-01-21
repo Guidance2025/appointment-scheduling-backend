@@ -5,12 +5,16 @@ import org.rocs.asa.domain.category.Category;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.post.Post;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.domain.user.User;
 import org.rocs.asa.dto.CreatePostRequest;
 import org.rocs.asa.repository.category.CategoryRepository;
 import org.rocs.asa.repository.post.PostRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.service.guidance.GuidanceService;
 import org.rocs.asa.service.post.PostService;
+import org.rocs.asa.repository.user.UserRepository;
+import org.rocs.asa.service.notification.NotificationService;
+import org.rocs.asa.utils.security.enumeration.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -34,17 +38,23 @@ public class PostServiceImpl implements PostService {
     private final GuidanceService guidanceService;
     private final JdbcTemplate jdbcTemplate;
     private final StudentRepository studentRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public PostServiceImpl(PostRepository postRepository,
                            CategoryRepository categoryRepository,
                            GuidanceService guidanceService,
                            JdbcTemplate jdbcTemplate,
-                           StudentRepository studentRepository) {
+                           StudentRepository studentRepository,
+                           NotificationService notificationService,
+                           UserRepository userRepository) {
         this.postRepository = postRepository;
         this.categoryRepository = categoryRepository;
         this.guidanceService = guidanceService;
         this.jdbcTemplate = jdbcTemplate;
         this.studentRepository = studentRepository;
+        this.notificationService = notificationService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -73,7 +83,7 @@ public class PostServiceImpl implements PostService {
 
         if (content.length() > 500) content = content.substring(0, 500);
 
-        // Single sectionId
+        // Single sectionId - optional for all categories except Announcement/Events
         Long sectionId = request.getSectionId();
         boolean isRestrictedCategory = "Announcement".equalsIgnoreCase(capped64) || "Events".equalsIgnoreCase(capped64);
         if (isRestrictedCategory && sectionId == null) {
@@ -90,6 +100,7 @@ public class PostServiceImpl implements PostService {
 
         if (exists != null && exists > 0) {
             LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={})", employeeNumber, capped64, sectionId);
+            return null;  // Or throw exception if preferred
         }
 
         Category toSave = new Category();
@@ -106,7 +117,34 @@ public class PostServiceImpl implements PostService {
         Post saved = postRepository.save(post);
         LOGGER.info("Post created id={} by employeeNumber={} with category '{}' and section={}",
                 saved.getPostId(), employeeNumber, savedCategory.getCategoryName(), sectionId);
+
+        try {
+            List<String> studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
+                    .stream()
+                    .map(User::getUserId)
+                    .collect(Collectors.toList());
+            notificationService.sendNotificationToAllStudent(
+                    studentUserIds,
+                    "New Post from Guidance",
+                    "A new " + capped64.toLowerCase() + " has been posted. Check your Content Hub!",
+                    "POST_UPDATE"
+            );
+        } catch (Exception e) {
+            LOGGER.error("Failed to send notification for post creation: {}", e.getMessage());
+        }
+
         return saved;
+    }
+
+    @Override
+    @Transactional
+    public Post createQuoteOfTheDay(CreatePostRequest request) {
+        CreatePostRequest quoteRequest = new CreatePostRequest();
+        quoteRequest.setPostContent(request.getPostContent());
+        quoteRequest.setCategoryName("Quote");
+//        quoteRequest.setSectionId(request.getSectionId());  // Optional
+
+        return createPost(quoteRequest);  // Reuse logic
     }
 
     @Override
