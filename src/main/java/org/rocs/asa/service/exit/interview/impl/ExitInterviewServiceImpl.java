@@ -82,10 +82,10 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
             throw new IllegalArgumentException("You can only create up to 5 questions.");
         }
 
-        Category category = categoryRepository.findByCategoryNameIgnoreCase("EXIT INTERVIEW")
+        Category category = categoryRepository.findByCategoryNameIgnoreCase("Exit Interview")
                 .orElseGet(() -> {
                     Category newCat = new Category();
-                    newCat.setCategoryName("EXIT INTERVIEW");
+                    newCat.setCategoryName("Exit Interview");
                     return categoryRepository.save(newCat);
                 });
 
@@ -95,7 +95,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
                     q.setGuidanceStaff(guidanceStaff);
                     q.setQuestionText(text);
                     q.setDateCreated(LocalDateTime.now());
-                    q.setCategory(category);  // Set category
+                    q.setCategory(category);
                     return q;
                 })
                 .toList();
@@ -119,12 +119,10 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
     public List<Questions> findByGuidanceStaffId(Long guidanceStaffId) {
         return questionsRepository.findByGuidanceStaffId(guidanceStaffId);
     }
-
     @Override
     public List<Questions> findAllQuestions() {
-        return questionsRepository.findByCategoryName("EXIT INTERVIEW");
+        return questionsRepository.findByCategoryName("Exit Interview");
     }
-
     @Override
     public ExitInterview studentResponse(ExitInterviewRequest request) {
         if (request.getQuestionId() == null) {
@@ -162,6 +160,6 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
     @Override
     public List<Questions> getUnansweredQuestionsForAuthenticatedStudent() {
         Student student = studentService.findByAuthenticatedStudent();
-        return questionsRepository.findUnansweredExitInterviewByStudentId(student.getId(), "EXIT INTERVIEW");
+        return questionsRepository.findUnansweredExitInterviewByStudentId(student.getId(), "Exit Interview");
     }
 }

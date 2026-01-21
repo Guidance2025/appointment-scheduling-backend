@@ -74,7 +74,7 @@ public class AppointmentValidator {
 
         validateBusinessHours(scheduledPH, endPH);
 
-        validateMinimumDuration(scheduledPH, endPH);
+//        validateMinimumDuration(scheduledPH, endPH);
     }
 
     /**

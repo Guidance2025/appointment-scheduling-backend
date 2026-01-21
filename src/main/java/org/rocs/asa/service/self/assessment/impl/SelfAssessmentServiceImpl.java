@@ -1,6 +1,5 @@
 package org.rocs.asa.service.self.assessment.impl;
 
-import com.google.api.gax.rpc.NotFoundException;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.questions.Questions;
 import org.rocs.asa.domain.self.assesment.SelfAssessment;
@@ -86,19 +85,19 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
 
         Category category = categoryRepository.findByCategoryNameIgnoreCase("SELF ASSESSMENT")
                 .orElseGet(() -> {
-                    Category newCat = new Category();
-                    newCat.setCategoryName("SELF ASSESSMENT");
-                    return categoryRepository.save(newCat);
+                    Category newCategory = new Category();
+                    newCategory.setCategoryName("SELF ASSESSMENT");
+                    return categoryRepository.save(newCategory);
                 });
 
         List<Questions> questions = cleanedQuestions.stream()
                 .map(text -> {
-                    Questions q = new Questions();
-                    q.setGuidanceStaff(guidanceStaff);
-                    q.setQuestionText(text);
-                    q.setDateCreated(LocalDateTime.now());
-                    q.setCategory(category);  // Set category
-                    return q;
+                    Questions question = new Questions();
+                    question.setGuidanceStaff(guidanceStaff);
+                    question.setQuestionText(text);
+                    question.setDateCreated(LocalDateTime.now());
+                    question.setCategory(category);
+                    return question;
                 })
                 .toList();
 

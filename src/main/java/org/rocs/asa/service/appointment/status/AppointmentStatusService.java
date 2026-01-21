@@ -130,12 +130,14 @@ public class AppointmentStatusService {
 
     /**
      * Sends appointment reminders to students and counselors
+     * Reminder timing based on appointment duration:
      */
     @Transactional
     public void sendAppointmentReminders() {
         LocalDateTime nowUTC = AppointmentMessageBuilder.nowUTC();
+
         LocalDateTime reminderStart = nowUTC.minusMinutes(REMINDER_WINDOW_MINUTES);
-        LocalDateTime reminderEnd = nowUTC.plusMinutes(REMINDER_MINUTES_BEFORE + REMINDER_WINDOW_MINUTES);
+        LocalDateTime reminderEnd = nowUTC.plusMinutes(50 + REMINDER_WINDOW_MINUTES);
 
         List<Appointment> upcoming = appointmentRepository
                 .findByStatusAndScheduledDateBetween(
@@ -148,6 +150,7 @@ public class AppointmentStatusService {
             sendReminderIfNeeded(appointment, nowUTC);
         }
     }
+
     /**
      * Cleans up expired availability blocks
      */
@@ -198,26 +201,48 @@ public class AppointmentStatusService {
         return AppointmentStatus.SCHEDULED.name();
     }
 
-
-
-
+    /**
+     * Sends reminder if needed based on appointment duration
+     * Implements custom reminder timing: 15, 20, 30, 45, 50 minutes before appointment
+     */
     private void sendReminderIfNeeded(Appointment appointment, LocalDateTime nowUTC) {
         long durationMinutes = Duration.between(
                 appointment.getScheduledDate(),
                 appointment.getEndDate()
         ).toMinutes();
 
-        int reminderMinutes = durationMinutes >= 30 ? 25 : 10;
+        int reminderMinutes;
+        if (durationMinutes >= 60) {
+            reminderMinutes = 50;
+        } else if (durationMinutes >= 45) {
+            reminderMinutes = 45;
+        } else if (durationMinutes >= 30) {
+            reminderMinutes = 30;
+        } else if (durationMinutes >= 20) {
+            reminderMinutes = 20;
+        } else if (durationMinutes >= 15) {
+            reminderMinutes = 15;
+        } else {
+            reminderMinutes = 10;
+        }
+
         LocalDateTime reminderTime = appointment.getScheduledDate().minusMinutes(reminderMinutes);
 
         if (nowUTC.isAfter(reminderTime) && nowUTC.isBefore(appointment.getScheduledDate())) {
             if (shouldSendReminder(appointment)) {
-                notificationService.notifyAppointmentReminder(appointment, reminderMinutes, false); // Student
-                notificationService.notifyAppointmentReminder(appointment, reminderMinutes, true);  // Staff
+                LOGGER.info("Sending reminder for appointment ID: {} ({} minutes before, duration: {} min)",
+                        appointment.getAppointmentId(), reminderMinutes, durationMinutes);
+
+                notificationService.notifyAppointmentReminder(appointment, reminderMinutes, false);
+
+                notificationService.notifyAppointmentReminder(appointment, reminderMinutes, true);
             }
         }
     }
 
+    /**
+     * Checks if reminder should be sent (prevents duplicate reminders)
+     */
     private boolean shouldSendReminder(Appointment appointment) {
         List<Notifications> existingReminders = notificationRepository
                 .findByAppointment_AppointmentIdAndActionType(

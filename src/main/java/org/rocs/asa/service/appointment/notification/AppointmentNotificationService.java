@@ -266,7 +266,6 @@ public class AppointmentNotificationService {
                 "APPOINTMENT_EXPIRED"
         );
 
-        // Notify staff
         String staffMessage = String.format(
                 "Appointment request from %s scheduled for %s has expired due to no response within 5 minutes.",
                 studentName, dateTime
@@ -290,7 +289,6 @@ public class AppointmentNotificationService {
         String studentName = getStudentFullName(appointment.getStudent());
         String dateTime = AppointmentMessageBuilder.formatFullDateTimePH(appointment.getScheduledDate());
 
-        // Notify student
         String studentMessage = String.format(
                 "Your reschedule request for the appointment with %s on %s has expired. " +
                         "The appointment remains at its original time.",

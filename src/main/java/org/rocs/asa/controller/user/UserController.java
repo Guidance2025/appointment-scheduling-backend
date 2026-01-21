@@ -39,7 +39,7 @@ public class UserController {
     private final JwtTokenProvider jwtTokenProvider;
     private NotificationService notificationService;
     private PasswordResetTokenService passwordResetService;
-    private LoginAttemptService loginAttemptService;  // ✅ ADDED
+    private LoginAttemptService loginAttemptService;
 
     /**
      * Constructs a new {@code UserController} with the required dependencies.
@@ -89,7 +89,14 @@ public class UserController {
 
         } catch (LockedException e) {
             LOGGER.warn(" Login attempt for locked account: {}", user.getUsername());
-            return createHttpResponse(HttpStatus.LOCKED, "YOUR ACCOUNT HAS BEEN LOCKED");
+
+            boolean isFailedAttemptLock = loginAttemptService.hasExceedMaxAttempts(user.getUsername());
+
+            if (isFailedAttemptLock) {
+                return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT LOCKED DUE TO MULTIPLE FAILED LOGIN ATTEMPTS");
+            } else {
+                return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT HAS BEEN LOCKED BY ADMINISTRATOR");
+            }
 
         } catch (DisabledException e) {
             LOGGER.warn(" Login attempt for disabled account: {}", user.getUsername());
@@ -104,7 +111,14 @@ public class UserController {
 
             if (e.getCause() instanceof LockedException) {
                 LOGGER.warn(" Account locked (wrapped exception): {}", user.getUsername());
-                return createHttpResponse(HttpStatus.LOCKED, "YOUR ACCOUNT HAS BEEN LOCKED");
+
+                boolean isFailedAttemptLock = loginAttemptService.hasExceedMaxAttempts(user.getUsername());
+
+                if (isFailedAttemptLock) {
+                    return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT LOCKED DUE TO MULTIPLE FAILED LOGIN ATTEMPTS");
+                } else {
+                    return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT HAS BEEN LOCKED BY ADMINISTRATOR");
+                }
             }
             else if (e.getCause() instanceof DisabledException) {
                 LOGGER.warn(" Account disabled (wrapped exception): {}", user.getUsername());
