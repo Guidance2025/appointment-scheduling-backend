@@ -2,6 +2,7 @@ package org.rocs.asa.controller.post;
 
 import jakarta.validation.Valid;
 import org.rocs.asa.domain.post.Post;
+import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.dto.CreatePostRequest;
 import org.rocs.asa.service.post.PostService;
 import org.rocs.asa.service.student.StudentService;
@@ -75,5 +76,10 @@ public class PostController {
         Long studentId = studentService.findByAuthenticatedStudent().getId();
         List<Map<String, Object>> posts = postService.getPostsForStudent(studentId, limit);
         return ResponseEntity.ok(posts);
+    }
+    @GetMapping("/posts/students/section")
+    public ResponseEntity<List<String>> getStudentsSection() {
+        List<String> sections = postService.findStudentsSection();
+        return ResponseEntity.ok(sections);
     }
 }
