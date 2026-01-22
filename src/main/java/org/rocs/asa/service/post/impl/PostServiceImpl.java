@@ -90,17 +90,24 @@ public class PostServiceImpl implements PostService {
             throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
         }
 
-        // Duplicate check with single section
-        Integer exists = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
-                        "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
-                        "AND NVL(p.section_id, -1) = NVL(?, -1) AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND",
-                Integer.class, employeeNumber, capped64, sectionId
-        );
+        // Debug logging for sectionId
+        LOGGER.info("Creating post: employeeNumber={}, category={}, sectionId={}", employeeNumber, capped64, sectionId);
 
-        if (exists != null && exists > 0) {
-            LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={})", employeeNumber, capped64, sectionId);
-            return null;  // Or throw exception if preferred
+        // Fixed duplicate-check query to handle null sectionId properly
+        String sql = "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
+                "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
+                "AND ((p.section_id IS NULL AND ? IS NULL) OR p.section_id = ?) " +
+                "AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND";
+
+        try {
+            Integer exists = jdbcTemplate.queryForObject(sql, Integer.class, employeeNumber, capped64, sectionId, sectionId);
+            if (exists != null && exists > 0) {
+                LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={})", employeeNumber, capped64, sectionId);
+                return null;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error in duplicate check query: {}", e.getMessage(), e);
+            throw e;  // Re-throw to see full error
         }
 
         Category toSave = new Category();
@@ -118,6 +125,7 @@ public class PostServiceImpl implements PostService {
         LOGGER.info("Post created id={} by employeeNumber={} with category '{}' and section={}",
                 saved.getPostId(), employeeNumber, savedCategory.getCategoryName(), sectionId);
 
+        // Send notification to all students (unchanged)
         try {
             List<String> studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
                     .stream()
@@ -126,7 +134,7 @@ public class PostServiceImpl implements PostService {
             notificationService.sendNotificationToAllStudent(
                     studentUserIds,
                     "New Post from Guidance",
-                    "A new " + capped64.toLowerCase() + " has been posted. Check your Content Hub!",
+                    "A new " + capped64.toLowerCase() + " has been posted. Check your dashboard!",
                     "POST_UPDATE"
             );
         } catch (Exception e) {
