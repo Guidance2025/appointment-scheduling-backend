@@ -18,13 +18,13 @@ public class MoodTrendController {
     @Autowired
     private MoodTrendService moodTrendService;
 
-    @PostMapping
+    @PostMapping("/save")
     public ResponseEntity<Mood> saveMoodEntry(@Valid @RequestBody MoodEntryRequest request) {
         Mood savedEntry = moodTrendService.saveMoodEntry(request);
         return ResponseEntity.ok(savedEntry);
     }
 
-    @GetMapping
+    @GetMapping("/retrieve-all")
     public ResponseEntity<List<Mood>> getAllMoodEntries() {
         List<Mood> entries = moodTrendService.getAllMoodEntries();
         return ResponseEntity.ok(entries);
