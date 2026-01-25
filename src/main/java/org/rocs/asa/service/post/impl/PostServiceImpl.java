@@ -4,28 +4,30 @@ import jakarta.persistence.EntityNotFoundException;
 import org.rocs.asa.domain.category.Category;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.post.Post;
+import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.dto.CreatePostRequest;
 import org.rocs.asa.repository.category.CategoryRepository;
 import org.rocs.asa.repository.post.PostRepository;
+import org.rocs.asa.repository.section.SectionRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.service.guidance.GuidanceService;
 import org.rocs.asa.service.post.PostService;
 import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.notification.NotificationService;
+import org.rocs.asa.service.student.StudentService;
 import org.rocs.asa.utils.security.enumeration.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,14 +42,18 @@ public class PostServiceImpl implements PostService {
     private final StudentRepository studentRepository;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final SectionRepository sectionRepository;
+    private final StudentService studentService;
 
+    @Autowired
     public PostServiceImpl(PostRepository postRepository,
                            CategoryRepository categoryRepository,
                            GuidanceService guidanceService,
                            JdbcTemplate jdbcTemplate,
                            StudentRepository studentRepository,
                            NotificationService notificationService,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           SectionRepository sectionRepository, StudentService studentService) {
         this.postRepository = postRepository;
         this.categoryRepository = categoryRepository;
         this.guidanceService = guidanceService;
@@ -55,6 +61,8 @@ public class PostServiceImpl implements PostService {
         this.studentRepository = studentRepository;
         this.notificationService = notificationService;
         this.userRepository = userRepository;
+        this.sectionRepository = sectionRepository;
+        this.studentService = studentService;
     }
 
     @Override
@@ -84,7 +92,7 @@ public class PostServiceImpl implements PostService {
         if (content.length() > 500) content = content.substring(0, 500);
 
         // Single sectionId - optional for all categories except Announcement/Events
-        Long sectionId = request.getSectionId();
+        Long sectionId = resolveSectionId(request);
         boolean isRestrictedCategory = "Announcement".equalsIgnoreCase(capped64) || "Events".equalsIgnoreCase(capped64);
         if (isRestrictedCategory && sectionId == null) {
             throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
@@ -320,8 +328,37 @@ public class PostServiceImpl implements PostService {
         return jdbcTemplate.queryForList(sql, studentSectionId, limit);
     }
 
+    @Override
+    public List<String> findStudentsSection() {
+        return sectionRepository.findAllDistinctSectionName();
+    }
     private Long getStudentSectionId(Long studentId) {
         Student student = studentRepository.findById(studentId).orElse(null);
         return student != null && student.getSection() != null ? student.getSection().getId() : null;
+    }
+    private Long resolveSectionId(CreatePostRequest request) {
+        if (request.getSectionId() != null) {
+            LOGGER.debug("Using provided section ID: {}", request.getSectionId());
+            return request.getSectionId();
+        }
+
+        if (request.getSectionName() != null && !request.getSectionName().trim().isEmpty()) {
+            String sectionName = request.getSectionName().trim();
+            LOGGER.debug("Looking up section by name: {}", sectionName);
+
+            Optional<Section> section = sectionRepository.findBySectionName(sectionName);
+
+            if (section.isPresent()) {
+                Long id = section.get().getId();
+                LOGGER.info("Resolved section name '{}' to ID {}", sectionName, id);
+                return id;
+            } else {
+                LOGGER.error("Section not found with name: {}", sectionName);
+                throw new IllegalArgumentException("Invalid section: " + sectionName);
+            }
+        }
+
+        LOGGER.debug("No section ID or name provided");
+        return null;
     }
 }

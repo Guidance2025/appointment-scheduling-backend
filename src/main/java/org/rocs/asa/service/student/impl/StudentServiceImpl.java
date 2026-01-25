@@ -3,6 +3,7 @@ package org.rocs.asa.service.student.impl;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.exception.domain.GuidanceStaffNotFoundException;
+import org.rocs.asa.exception.domain.StudentNotFoundException;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.service.student.StudentService;
 import org.rocs.asa.service.user.UserService;
@@ -35,7 +36,7 @@ public class StudentServiceImpl implements StudentService {
         }
         Student student = findByUser(loggedInUser);
         if (student == null){
-            throw new GuidanceStaffNotFoundException("Student Required");
+            throw new StudentNotFoundException("Student Required");
         }
         return student;
     }

@@ -1,6 +1,7 @@
 package org.rocs.asa.service.post;
 
 import org.rocs.asa.domain.post.Post;
+import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.dto.CreatePostRequest;
 
 import java.util.List;
@@ -15,4 +16,5 @@ public interface PostService {
     Map<String, Object> getFeed(int limit);
     void deletePost(Long postId);
     List<Map<String, Object>> getPostsForStudent(Long studentId, int limit);
+    List<String> findStudentsSection();
 }

@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.rocs.asa.utils.security.constant.SecurityConstant.JWT_TOKEN_HEADER;
@@ -84,30 +85,48 @@ public class UserController {
             loginAttemptService.evictUserToLoginAttemptCache(user.getUsername());
 
             Map<String, Object> response = userService.buildLoginResponse(loginUser);
-            LOGGER.info(" User logged in successfully: {}", user.getUsername());
+            LOGGER.info("✅ User logged in successfully: {}", user.getUsername());
             return new ResponseEntity<>(response, jwtHeader, HttpStatus.OK);
 
         } catch (LockedException e) {
-            LOGGER.warn(" Login attempt for locked account: {}", user.getUsername());
+            LOGGER.warn("🔒 Login attempt for locked account: {}", user.getUsername());
 
+            // FIXED: Determine lock type reliably
             boolean isFailedAttemptLock = loginAttemptService.hasExceedMaxAttempts(user.getUsername());
 
             if (isFailedAttemptLock) {
-                return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT LOCKED DUE TO MULTIPLE FAILED LOGIN ATTEMPTS");
+                // FIXED: Return structured error response with lock type
+                return createStructuredErrorResponse(
+                        HttpStatus.LOCKED,
+                        "ACCOUNT LOCKED DUE TO MULTIPLE FAILED LOGIN ATTEMPTS",
+                        "FAILED_ATTEMPTS",
+                        180 // 3 minutes in seconds
+                );
             } else {
-                return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT HAS BEEN LOCKED BY ADMINISTRATOR");
+                // FIXED: Return structured error response for admin lock
+                return createStructuredErrorResponse(
+                        HttpStatus.LOCKED,
+                        "ACCOUNT HAS BEEN LOCKED BY ADMINISTRATOR",
+                        "ADMIN_LOCK",
+                        null // No duration for permanent locks
+                );
             }
 
         } catch (DisabledException e) {
             LOGGER.warn(" Login attempt for disabled account: {}", user.getUsername());
-            return createHttpResponse(HttpStatus.UNAUTHORIZED, "YOUR ACCOUNT HAS BEEN DISABLED");
+            return createStructuredErrorResponse(
+                    HttpStatus.FORBIDDEN,
+                    "YOUR ACCOUNT HAS BEEN DISABLED",
+                    "DISABLED",
+                    null
+            );
 
         } catch (BadCredentialsException e) {
             LOGGER.warn(" Invalid credentials for username: {}", user.getUsername());
             return createHttpResponse(HttpStatus.UNAUTHORIZED, "USERNAME/PASSWORD IS INCORRECT");
 
         } catch (InternalAuthenticationServiceException e) {
-            LOGGER.error(" Internal authentication error for username {}: ", user.getUsername(), e);
+            LOGGER.error("⚠Internal authentication error for username {}: ", user.getUsername(), e);
 
             if (e.getCause() instanceof LockedException) {
                 LOGGER.warn(" Account locked (wrapped exception): {}", user.getUsername());
@@ -115,14 +134,29 @@ public class UserController {
                 boolean isFailedAttemptLock = loginAttemptService.hasExceedMaxAttempts(user.getUsername());
 
                 if (isFailedAttemptLock) {
-                    return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT LOCKED DUE TO MULTIPLE FAILED LOGIN ATTEMPTS");
+                    return createStructuredErrorResponse(
+                            HttpStatus.LOCKED,
+                            "ACCOUNT LOCKED DUE TO MULTIPLE FAILED LOGIN ATTEMPTS",
+                            "FAILED_ATTEMPTS",
+                            180
+                    );
                 } else {
-                    return createHttpResponse(HttpStatus.LOCKED, "ACCOUNT HAS BEEN LOCKED BY ADMINISTRATOR");
+                    return createStructuredErrorResponse(
+                            HttpStatus.LOCKED,
+                            "ACCOUNT HAS BEEN LOCKED BY ADMINISTRATOR",
+                            "ADMIN_LOCK",
+                            null
+                    );
                 }
             }
             else if (e.getCause() instanceof DisabledException) {
                 LOGGER.warn(" Account disabled (wrapped exception): {}", user.getUsername());
-                return createHttpResponse(HttpStatus.UNAUTHORIZED, "YOUR ACCOUNT HAS BEEN DISABLED");
+                return createStructuredErrorResponse(
+                        HttpStatus.FORBIDDEN,
+                        "YOUR ACCOUNT HAS BEEN DISABLED",
+                        "DISABLED",
+                        null
+                );
             }
             else {
                 return createHttpResponse(HttpStatus.UNAUTHORIZED, "USERNAME/PASSWORD IS INCORRECT");
@@ -132,6 +166,7 @@ public class UserController {
             return createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR, "LOGIN FAILED");
         }
     }
+
     /**
      * Initiates password reset process
      * Sends reset link to user's email
@@ -174,7 +209,7 @@ public class UserController {
     }
 
     /**
-     * Helper method to create consistent HTTP error responses
+     * FIXED: Helper method to create consistent HTTP error responses
      */
     private ResponseEntity<HttpResponse> createHttpResponse(HttpStatus status, String message) {
         return new ResponseEntity<>(
@@ -186,5 +221,36 @@ public class UserController {
                 ),
                 status
         );
+    }
+
+    /**
+     *  create structured error responses with lock metadata
+     * This provides the frontend with reliable lock type information
+     *
+     * @param status HTTP status code
+     * @param message Error message
+     * @param lockType Type of lock (ADMIN_LOCK, FAILED_ATTEMPTS, DISABLED)
+     * @param lockDuration Duration in seconds (null for permanent locks)
+     * @return ResponseEntity with structured error data
+     */
+    private ResponseEntity<Map<String, Object>> createStructuredErrorResponse(
+            HttpStatus status,
+            String message,
+            String lockType,
+            Integer lockDuration) {
+
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("status", status.value());
+        errorResponse.put("error", status.getReasonPhrase().toUpperCase());
+        errorResponse.put("message", message.toUpperCase());
+        errorResponse.put("lockType", lockType);
+
+        if (lockDuration != null) {
+            errorResponse.put("lockDuration", lockDuration);
+        }
+
+        errorResponse.put("timestamp", System.currentTimeMillis());
+
+        return new ResponseEntity<>(errorResponse, status);
     }
 }
