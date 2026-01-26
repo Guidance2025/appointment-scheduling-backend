@@ -8,6 +8,9 @@ import lombok.Data;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 
 import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
 import java.util.Date;
 
 @Entity
@@ -21,6 +24,7 @@ public class Person implements Serializable {
     @NotBlank(message = "Firstname is required")
     @Column(nullable = false)
     private String firstName;
+
     @NotBlank(message = "Middlename is required")
     @Column(nullable = false)
     private String middleName;
@@ -38,6 +42,7 @@ public class Person implements Serializable {
 
     @Column(nullable = false)
     private String gender;
+
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -50,4 +55,18 @@ public class Person implements Serializable {
     @OneToOne(mappedBy = "person")
     @JsonIgnore
     private GuidanceStaff guidanceStaff;
+
+    @PrePersist
+    @PreUpdate
+    public void calculateAge() {
+        if (this.birthdate != null) {
+            LocalDate birthLocalDate = this.birthdate.toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+            LocalDate now = LocalDate.now();
+            this.age = Period.between(birthLocalDate, now).getYears();
+        } else {
+            this.age = 0;
+        }
+    }
 }
