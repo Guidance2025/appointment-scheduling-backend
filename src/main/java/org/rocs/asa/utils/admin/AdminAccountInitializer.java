@@ -29,6 +29,7 @@ public class AdminAccountInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PersonRepository personRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+
     @Autowired
     public AdminAccountInitializer(UserRepository userRepository,
                                    PersonRepository personRepository,
@@ -62,24 +63,23 @@ public class AdminAccountInitializer implements CommandLineRunner {
             return;
         }
 
-
         if (userRepository.findUserByUsername(defaultAdminUsername) != null) {
             LOGGER.warn("Username '{}' already exists but is not an admin. Skipping creation.", defaultAdminUsername);
             return;
         }
+
         if (userRepository.findUserByPersonEmail(defaultAdminEmail) != null) {
             LOGGER.warn("Email '{}' already exists. Skipping admin creation.", defaultAdminEmail);
             return;
         }
 
         try {
-
             Person adminPerson = new Person();
             adminPerson.setFirstName("System");
             adminPerson.setMiddleName("Default");
             adminPerson.setLastName("Administrator");
-            adminPerson.setAge(30);
-            adminPerson.setGender("Male");
+            adminPerson.setBirthdate(new Date());  // Age will be auto-calculated by @PrePersist
+            adminPerson.setGender("N/A");  // ADDED THIS - was missing!
             adminPerson.setEmail(defaultAdminEmail);
             adminPerson.setAddress("System");
             adminPerson.setContactNumber("09999999999");
