@@ -17,4 +17,15 @@ public interface SectionRepository extends JpaRepository<Section,Long> {
             "AND ROWNUM = 1",
             nativeQuery = true)
     Optional<Section> findBySectionName(@Param("sectionName") String sectionName);
+    /**
+     * Find a section by its name and cluster head.
+     * This prevents duplicate sections from being created.
+     *
+     * @param sectionName the name of the section (e.g., "IT-301")
+     * @param clusterHead the cluster head assigned to this section
+     * @return the existing Section if found, null otherwise
+     */
+    Section findBySectionNameAndClusterHead(String sectionName, String clusterHead);
+
+
 }

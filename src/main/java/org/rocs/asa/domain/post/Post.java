@@ -1,8 +1,10 @@
 package org.rocs.asa.domain.post;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import lombok.Data;
 
+import java.time.LocalDateTime;
+@Data
 @Entity
 @Table(name = "tbl_posts")
 public class Post {
@@ -29,20 +31,4 @@ public class Post {
     // Single sectionId instead of multiple sections
     @Column(name = "section_id")
     private Long sectionId;
-
-    // Getters and setters
-    public Long getPostId() { return postId; }
-    public void setPostId(Long postId) { this.postId = postId; }
-    public Long getEmployeeNumber() { return employeeNumber; }
-    public void setEmployeeNumber(Long employeeNumber) { this.employeeNumber = employeeNumber; }
-    public Long getCategoryId() { return categoryId; }
-    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
-    public Long getQuestionId() { return questionId; }
-    public void setQuestionId(Long questionId) { this.questionId = questionId; }
-    public String getPostContent() { return postContent; }
-    public void setPostContent(String postContent) { this.postContent = postContent; }
-    public LocalDateTime getPostedDate() { return postedDate; }
-    public void setPostedDate(LocalDateTime postedDate) { this.postedDate = postedDate; }
-    public Long getSectionId() { return sectionId; }
-    public void setSectionId(Long sectionId) { this.sectionId = sectionId; }
 }

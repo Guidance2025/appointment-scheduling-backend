@@ -44,25 +44,17 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final StudentService studentService;
-
     @Autowired
-    public PostServiceImpl(PostRepository postRepository,
-                           CategoryRepository categoryRepository,
-                           GuidanceService guidanceService,
-                           JdbcTemplate jdbcTemplate,
-                           StudentRepository studentRepository,
-                           NotificationService notificationService,
-                           UserRepository userRepository,
-                           SectionRepository sectionRepository, StudentService studentService) {
+    public PostServiceImpl(PostRepository postRepository, CategoryRepository categoryRepository, GuidanceService guidanceService, JdbcTemplate jdbcTemplate, StudentRepository studentRepository, NotificationService notificationService, UserRepository userRepository, SectionRepository sectionRepository, StudentService studentService, NotificationService notificationService1) {
         this.postRepository = postRepository;
         this.categoryRepository = categoryRepository;
         this.guidanceService = guidanceService;
         this.jdbcTemplate = jdbcTemplate;
         this.studentRepository = studentRepository;
-        this.notificationService = notificationService;
         this.userRepository = userRepository;
         this.sectionRepository = sectionRepository;
         this.studentService = studentService;
+        this.notificationService = notificationService1;
     }
 
     @Override
@@ -135,10 +127,8 @@ public class PostServiceImpl implements PostService {
 
         // Send notification to all students (unchanged)
         try {
-            List<String> studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
-                    .stream()
-                    .map(User::getUserId)
-                    .collect(Collectors.toList());
+            List<String> studentUserIds = userRepository.findUserIdsBySectionNameAndRole(String.valueOf(sectionId),Role.STUDENT_ROLE.name());
+
             notificationService.sendNotificationToAllStudent(
                     studentUserIds,
                     "New Post from Guidance",
@@ -332,6 +322,8 @@ public class PostServiceImpl implements PostService {
     public List<String> findStudentsSection() {
         return sectionRepository.findAllDistinctSectionName();
     }
+
+
     private Long getStudentSectionId(Long studentId) {
         Student student = studentRepository.findById(studentId).orElse(null);
         return student != null && student.getSection() != null ? student.getSection().getId() : null;

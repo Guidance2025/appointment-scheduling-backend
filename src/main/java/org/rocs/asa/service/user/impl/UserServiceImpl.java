@@ -34,28 +34,27 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.rocs.asa.exception.constants.ExceptionConstants.USER_NOT_FOUND;
 import static org.rocs.asa.utils.security.enumeration.Role.*;
 
 @Service
 @Transactional
-@Qualifier(value = "userDetailsService")
+@Qualifier("userDetailsService")
 public class UserServiceImpl implements UserService, UserDetailsService {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(UserServiceImpl.class);
-    private UserRepository userRepository;
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
-    private LoginAttemptService loginAttemptsService;
-    private StudentRepository studentRepository;
-    private PersonRepository personRepository;
-    private GuidanceStaffRepository guidanceStaffRepository;
-    private EmailService emailService;
-    private PasswordResetTokenService passwordResetTokenService;
-    private SectionRepository sectionRepository;
+
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+    private final LoginAttemptService loginAttemptsService;
+    private final StudentRepository studentRepository;
+    private final PersonRepository personRepository;
+    private final GuidanceStaffRepository guidanceStaffRepository;
+    private final EmailService emailService;
+    private final PasswordResetTokenService passwordResetTokenService;
+    private final SectionRepository sectionRepository;
 
     @Value("${spring.application.frontend-url}")
     private String frontendUrl;
@@ -73,7 +72,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
                            EmailService emailService,
                            PasswordResetTokenService passwordResetTokenService,
                            SectionRepository sectionRepository) {
-
         this.userRepository = userRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.loginAttemptsService = loginAttemptsService;
@@ -85,176 +83,89 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         this.sectionRepository = sectionRepository;
     }
 
+    /**
+     * Utility to normalize username consistently
+     */
+    private String normalizeUsername(String username) {
+        return username == null ? null : username.toLowerCase().trim();
+    }
+
     @Override
     public User findUserByUsername(String username) {
-        return this.userRepository.findUserByUsername(username);
+        return this.userRepository.findUserByUsername(normalizeUsername(username));
     }
 
     @Override
     public User findUserByPersonEmail(String email) {
-        return this.userRepository.findUserByPersonEmail(email);
+        return this.userRepository.findUserByPersonEmail(email.trim().toLowerCase());
     }
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        LOGGER.info("🔍 DEBUG: loadUserByUsername called for: {}", username);
+        String normalizedUsername = normalizeUsername(username);
+        LOGGER.info("Login attempt for username: {}", normalizedUsername);
 
-        // ✅ CRITICAL: Check login attempts FIRST (before user lookup)
-        // This prevents brute force attacks on non-existent usernames
-        boolean attemptsExceeded = loginAttemptsService.hasExceedMaxAttempts(username);
-        LOGGER.info("🔍 DEBUG: hasExceedMaxAttempts returned: {} for username: {}", attemptsExceeded, username);
-
-        if(attemptsExceeded){
-            LOGGER.warn("🔒 BLOCKING LOGIN - Too many failed attempts for username: {}", username);
+        if (loginAttemptsService.hasExceedMaxAttempts(normalizedUsername)) {
+            LOGGER.warn("Account locked due to too many failed attempts: {}", normalizedUsername);
             throw new LockedException("Your account has been locked");
         }
 
-        // Find user in database
-        User user = this.findUserByUsername(username);
-        if(user == null){
-            LOGGER.info("❌ User not found: {}", username);
+        User user = findUserByUsername(normalizedUsername);
+        if (user == null) {
+            LOGGER.error("User not found: {}", normalizedUsername);
             throw new UsernameNotFoundException(USER_NOT_FOUND);
         }
 
-        // Check if account is locked in database
-        if(user.isLocked()){
-            LOGGER.warn("🔒 Account is locked in database: {}", username);
+        if (user.isLocked()) {
+            LOGGER.warn("Account is locked: {}", normalizedUsername);
             throw new LockedException("Your account has been locked");
         }
 
-        // SUCCESS: Update last login date
         user.setLastLoginDate(new Date());
         this.userRepository.save(user);
 
-        LOGGER.info("✅ User authenticated successfully: {}", username);
         return new UserPrincipal(user);
     }
 
     @Override
     public Registration registerUser(Registration registration) throws MessagingException {
-        if(registration.getStudent() != null){
+        if (registration.getStudent() != null) {
             return registerStudent(registration);
-        }else if(registration.getGuidanceStaff() != null) {
+        } else if (registration.getGuidanceStaff() != null) {
             return registerGuidanceStaff(registration);
         }
         return registration;
     }
 
-    @Override
-    public void initiatePasswordReset(String username, String newPassword) throws MessagingException {
-        User existingUser = userRepository.findUserByUsername(username);
-        if(existingUser == null ) {
-            throw new UserNotFoundException("User does not exist");
-        }
-        String userEmail = existingUser.getPerson().getEmail();
-
-        User validateEmail = findUserByPersonEmail(userEmail);
-
-        if(validateEmail == null) {
-            throw new EmailNotFoundException("Email does not Exist");
-        }
-        if(this.passwordResetTokenService.exceedMaxAttempts(userEmail)) {
-            throw new TooManyAttemptsException("Too many attempts. Try again later");
-        }
-        String encryptedPassword = encodePassword(newPassword);
-        String token = passwordResetTokenService.generateSecureToken(userEmail,encryptedPassword);
-
-        String verifyToken = buildResetPasswordUrl(token);
-        this.passwordResetTokenService.incrementAttempts(userEmail);
-        this.emailService.sendPasswordResetVerificationEmail(userEmail,verifyToken);
-    }
-
-    @Override
-    public void verifyAndCompletePasswordReset(String token) {
-        Map<String,String> tokenData = passwordResetTokenService.validateToken(token);
-        String email = tokenData.get("email");
-        String encryptedPassword = tokenData.get("password");
-
-        if (email == null || encryptedPassword == null) {
-            throw new InvalidTokenException("Invalid or expired token");
-        }
-
-        User existingUser = this.userRepository.findUserByPersonEmail(email);
-
-        existingUser.setPassword(encryptedPassword);
-        existingUser.setActive(true);
-        existingUser.setLocked(false); // Unlock account when password is reset
-        userRepository.save(existingUser);
-
-        this.passwordResetTokenService.evictTokenInCache(token);
-        this.passwordResetTokenService.clearAttempts(email);
-
-        // Clear login attempts when password is reset
-        this.loginAttemptsService.evictUserToLoginAttemptCache(existingUser.getUsername());
-
-        LOGGER.info("✅ Password successfully reset for user: {}", existingUser.getUsername());
-    }
-
-    private String buildResetPasswordUrl(String token){
-        return frontendUrl + "/verification-success?token=" + token;
-    }
-
     @Transactional
     private Registration registerStudent(Registration registration) throws MessagingException {
+        if (registration == null || registration.getStudent() == null)
+            throw new IllegalArgumentException("Registration and Student are required");
 
-        if (registration == null || registration.getStudent() == null) {
-            LOGGER.error("Registration or Student object is null");
-            throw new IllegalArgumentException("Registration and Student information are required");
-        }
-
-        User user = registration.getStudent().getUser();
         Person person = registration.getStudent().getPerson();
         Section section = registration.getStudent().getSection();
         String studentNumber = registration.getStudent().getStudentNumber();
 
-        if (user == null) {
-            LOGGER.error("User not found in registration");
-            throw new UserNotFoundException("User information is required");
-        }
-        if (person == null) {
-            LOGGER.error("Person not found in registration");
-            throw new PersonNotFoundException("Person information is required");
-        }
-        if (section == null) {
-            LOGGER.error("Section not found in registration");
-            throw new SectionNotFoundException("Section information is required");
-        }
-        if (studentNumber == null || studentNumber.trim().isEmpty()) {
-            LOGGER.error("Student number is missing");
-            throw new IllegalArgumentException("Student number is required");
-        }
+        if (person == null) throw new PersonNotFoundException("Person is required");
+        if (section == null) throw new SectionNotFoundException("Section is required");
+        if (studentNumber == null || studentNumber.trim().isEmpty()) throw new IllegalArgumentException("Student number is required");
 
-        validateUsername(StringUtils.EMPTY, user.getUsername());
-        String username = user.getUsername();
-        String password = user.getPassword() == null
-                ? generatePassword()
-                : user.getPassword();
-        String email = person.getEmail();
+        // Auto-generate username and password
+        String username = normalizeUsername(person.getLastName());
+        String firstname = normalizeUsername(person.getFirstName());
+        String lastFourDigits = studentNumber.substring(Math.max(0, studentNumber.length() - 4));
+        String password = firstname + lastFourDigits;
 
-        User existingUserByUsername = this.userRepository.findUserByUsername(username);
-        if (existingUserByUsername != null) {
-            LOGGER.error("Username already exists: {}", username);
-            throw new UsernameExistsException("Username already exists");
-        }
+        String email = person.getEmail().trim().toLowerCase();
 
-        User existingUserByEmail = this.userRepository.findUserByPersonEmail(email);
-        if (existingUserByEmail != null) {
-            LOGGER.error("Email already exists: {}", email);
-            throw new EmailAlreadyExistException("Email already exists");
-        }
+        if (findUserByUsername(username) != null) throw new UsernameExistsException("Username already exists");
+        if (findUserByPersonEmail(email) != null) throw new EmailAlreadyExistException("Email already exists");
+        if (studentRepository.findStudentByStudentNumber(studentNumber) != null) throw new StudentNumberAlreadyExistException("Student number already exists");
 
-        Student existingStudent = this.studentRepository.findStudentByStudentNumber(studentNumber);
-        if (existingStudent != null) {
-            LOGGER.error("Student number already exists: {}", studentNumber);
-            throw new StudentNumberAlreadyExistException("Student number already exists");
-        }
+        validatePassword(password);
 
-        if (user.getPassword() != null) {
-            validatePassword(password);
-        }
-
-        Person savedPerson = this.personRepository.save(person);
-        LOGGER.info("Person saved successfully with ID: {}", savedPerson.getId());
+        person.setEmail(email);
+        Person savedPerson = personRepository.save(person);
 
         User newUser = new User();
         newUser.setPerson(savedPerson);
@@ -266,67 +177,72 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         newUser.setJoinDate(new Date());
         newUser.setRole(STUDENT_ROLE.name());
         newUser.setAuthorities(Arrays.stream(STUDENT_ROLE.getAuthorities()).toList());
-        User savedUser = this.userRepository.save(newUser);
-        LOGGER.info("User saved successfully with username: {}", savedUser.getUsername());
+        User savedUser = userRepository.save(newUser);
 
-        Section savedSection = this.sectionRepository.save(section);
-        LOGGER.info("Section saved Successfully");
+        // Handle section - check if it already exists by sectionName and clusterHead
+        String sectionName = section.getSectionName().trim();
+        String clusterHead = section.getClusterHead().trim();
+
+        // Try to find existing section
+        Section existingSection = sectionRepository.findBySectionNameAndClusterHead(sectionName, clusterHead);
+
+        Section savedSection;
+        if (existingSection != null) {
+            // Use existing section
+            savedSection = existingSection;
+            LOGGER.info("Using existing section: {} with cluster head: {}", sectionName, clusterHead);
+        } else {
+            // Create new section
+            section.setOrganization(determineOrganization(sectionName));
+            section.setClusterName(determineClusterName(section.getOrganization(), sectionName));
+            section.setCourse(determineCourse(sectionName));
+            savedSection = sectionRepository.save(section);
+            LOGGER.info("Created new section: {} with cluster head: {}", sectionName, clusterHead);
+        }
 
         Student student = new Student();
         student.setPerson(savedPerson);
         student.setSection(savedSection);
         student.setStudentNumber(studentNumber);
         student.setUser(savedUser);
-        Student savedStudent = this.studentRepository.save(student);
-        LOGGER.info("Student saved successfully with student number: {}", savedStudent.getStudentNumber());
+        Student savedStudent = studentRepository.save(student);
 
         Registration savedRegistration = new Registration();
         savedRegistration.setStudent(savedStudent);
-        emailService.sendNewRegisterAccountEmail(email,username,password);
-        LOGGER.info("Student account successfully created for username: {}", username);
 
+        emailService.sendNewRegisterAccountEmail(email, username, password);
+
+        LOGGER.info("Student account created: {} / {}", username, password);
         return savedRegistration;
     }
 
+    @Transactional
     private Registration registerGuidanceStaff(Registration registration) throws MessagingException {
+        if (registration == null || registration.getGuidanceStaff() == null)
+            throw new IllegalArgumentException("Registration and GuidanceStaff are required");
 
-        if (registration == null || registration.getGuidanceStaff() == null) {
-            LOGGER.error("Registration or Guidance Staff object is null");
-            throw new IllegalArgumentException("Registration and Guidance Staff information are required");
-        }
-
-        User user = registration.getGuidanceStaff().getUser();
         Person person = registration.getGuidanceStaff().getPerson();
+        if (person == null) throw new PersonNotFoundException("Person is required");
 
-        if (user == null) {
-            LOGGER.error("User not found in registration");
-            throw new UserNotFoundException("User information is required");
-        }
-        if (person == null) {
-            LOGGER.error("Person not found in registration");
-            throw new PersonNotFoundException("Person information is required");
-        }
+        // Auto-generate username from lastname
+        String username = normalizeUsername(person.getLastName());
 
-        validateUsername(StringUtils.EMPTY, user.getUsername());
-        String username = user.getUsername();
-        String password = user.getPassword();
-        String email = person.getEmail();
+        // Auto-generate password from firstname + lastname
+        String firstname = normalizeUsername(person.getFirstName());
+        String lastname = normalizeUsername(person.getLastName());
+        String password = firstname + lastname;
 
-        User existingUserByUsername = findUserByUsername(username);
-        if (existingUserByUsername != null) {
-            LOGGER.error("Username already exists: {}", username);
+        String email = person.getEmail().trim().toLowerCase();
+
+        if (findUserByUsername(username) != null)
             throw new UsernameExistsException("Username already exists");
-        }
-
-        User existingUserByEmail = this.userRepository.findUserByPersonEmail(email);
-        if (existingUserByEmail != null) {
-            LOGGER.error("Email already exists: {}", email);
+        if (findUserByPersonEmail(email) != null)
             throw new EmailAlreadyExistException("Email already exists");
-        }
+
         validatePassword(password);
 
-        Person savedPerson = this.personRepository.save(person);
-        LOGGER.info("Person saved successfully with ID: {}", savedPerson.getId());
+        person.setEmail(email);
+        Person savedPerson = personRepository.save(person);
 
         User newUser = new User();
         newUser.setPerson(savedPerson);
@@ -338,22 +254,59 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         newUser.setJoinDate(new Date());
         newUser.setRole(GUIDANCE_ROLE.name());
         newUser.setAuthorities(Arrays.stream(GUIDANCE_ROLE.getAuthorities()).toList());
-        User savedUser = this.userRepository.save(newUser);
-        LOGGER.info("User saved successfully with username: {}", savedUser.getUsername());
+        User savedUser = userRepository.save(newUser);
 
         GuidanceStaff guidanceStaff = new GuidanceStaff();
         guidanceStaff.setPerson(savedPerson);
         guidanceStaff.setUser(savedUser);
         guidanceStaff.setPositionInRc(registration.getGuidanceStaff().getPositionInRc());
-        GuidanceStaff savedGuidanceStaff = this.guidanceStaffRepository.save(guidanceStaff);
-        LOGGER.info("Guidance Staff saved successfully with ID: {}", savedGuidanceStaff.getId());
+        GuidanceStaff savedGuidanceStaff = guidanceStaffRepository.save(guidanceStaff);
 
+        // Prepare registration response
         Registration savedRegistration = new Registration();
         savedRegistration.setGuidanceStaff(savedGuidanceStaff);
-        emailService.sendNewRegisterAccountEmail(email,username,password);
-        LOGGER.info("Guidance Staff account successfully created for username: {}", username);
 
+        // Send email
+        emailService.sendNewRegisterAccountEmail(email, username, password);
+
+        LOGGER.info("GuidanceStaff account created: {} / {}", username, password);
         return savedRegistration;
+    }
+
+    @Override
+    public void initiatePasswordReset(String username, String newPassword) throws MessagingException {
+        String normalizedUsername = normalizeUsername(username);
+        User existingUser = findUserByUsername(normalizedUsername);
+        if (existingUser == null) throw new UserNotFoundException("User not found");
+
+        String email = existingUser.getPerson().getEmail();
+        if (passwordResetTokenService.exceedMaxAttempts(email)) throw new TooManyAttemptsException("Too many attempts");
+
+        String encryptedPassword = encodePassword(newPassword);
+        String token = passwordResetTokenService.generateSecureToken(email, encryptedPassword);
+        String verifyUrl = frontendUrl + "/verification-success?token=" + token;
+        passwordResetTokenService.incrementAttempts(email);
+
+        emailService.sendPasswordResetVerificationEmail(email, verifyUrl);
+    }
+
+    @Override
+    public void verifyAndCompletePasswordReset(String token) {
+        Map<String, String> tokenData = passwordResetTokenService.validateToken(token);
+        String email = tokenData.get("email");
+        String encryptedPassword = tokenData.get("password");
+
+        if (email == null || encryptedPassword == null) throw new InvalidTokenException("Invalid token");
+
+        User user = findUserByPersonEmail(email);
+        user.setPassword(encryptedPassword);
+        user.setActive(true);
+        user.setLocked(false);
+        userRepository.save(user);
+
+        passwordResetTokenService.evictTokenInCache(token);
+        passwordResetTokenService.clearAttempts(email);
+        loginAttemptsService.evictUserToLoginAttemptCache(user.getUsername());
     }
 
     @Override
@@ -365,72 +318,57 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         if (GUIDANCE_ROLE.name().equals(user.getRole())) {
             GuidanceStaff guidanceStaff = guidanceStaffRepository.findByUser(user);
-            if (guidanceStaff != null) {
-                response.put("guidanceStaffId", guidanceStaff.getId());
-                LOGGER.info("Guidance Staff ID added to response: {}", guidanceStaff.getId());
-            }
+            if (guidanceStaff != null) response.put("guidanceStaffId", guidanceStaff.getId());
         }
         if (STUDENT_ROLE.name().equals(user.getRole())) {
             Student student = studentRepository.findByUser(user);
-            if (student != null) {
-                response.put("studentId", student.getId());
-                LOGGER.info("Student ID added to response: {}", student.getId());
-            }
+            if (student != null) response.put("studentId", student.getId());
         }
 
         return response;
     }
 
-    private User validateUsername(String currentUsername, String newUsername) throws UserNotFoundException,UsernameExistException{
-        User userEmail = findUserByUsername(newUsername);
-        if(StringUtils.isNotBlank(currentUsername)){
-            User currentUser = findUserByUsername(currentUsername);
-            validateLoginAttempt(currentUser);
-            if(currentUser == null){
-                throw new UserNotFoundException("User not found");
-            }
-            if(userEmail != null && !userEmail.getId().equals(currentUser.getId())){
-                throw new UsernameExistException("Username is already exist");
-            }
-            return currentUser;
-        } else {
-            if(userEmail != null){
-                throw new UsernameExistException("Username is already exist");}
-            return null;
-        }
-
-    }
-
-    private void validatePassword(String password) {
-        if (password == null || password.length() < 6) {
-            throw new InvalidPasswordException("Password must be at least 6 characters");
-        }
-    }
-
-    private String generateUserId(){
-        return RandomStringUtils.randomNumeric(10);
-    }
-
-    private String generatePassword(){
-        return RandomStringUtils.randomAlphanumeric(10);
-    }
-
-    private String encodePassword(String password){
+    private String encodePassword(String password) {
         return bCryptPasswordEncoder.encode(password);
     }
 
-    private void validateLoginAttempt(User user){
-        if(user.isLocked()){
-            LOGGER.warn("Attempted access to locked account: {}", user.getUsername());
-            loginAttemptsService.evictUserToLoginAttemptCache(user.getUsername());
-            throw new LockedException("Your account has been locked");
-        }
+    private String generateUserId() {
+        return RandomStringUtils.randomNumeric(10);
+    }
 
-        if(loginAttemptsService.hasExceedMaxAttempts(user.getUsername())){
-            user.setLocked(true);
-            userRepository.save(user);
-            LOGGER.warn("Account locked due to exceeding max login attempts: {}", user.getUsername());
-            throw new LockedException("Your account has been locked");
+    private void validatePassword(String password) {
+        if (password == null || password.length() < 6)
+            throw new InvalidPasswordException("Password must be at least 6 characters");
+    }
+
+    private String determineOrganization(String sectionName) {
+        if (sectionName == null) return "ROCS";
+        String prefix = sectionName.split("[-–]")[0].toUpperCase();
+        switch (prefix) {
+            case "ECE", "BSECE" -> { return "ECE"; }
+            case "HM", "BSHM" -> { return "HM"; }
+            case "TM", "BSTM" -> { return "TM"; }
+            case "BSA" -> { return "BSA"; }
+            default -> { return "ROCS"; }
         }
+    }
+
+    private String determineClusterName(String organization, String sectionName) {
+        if (organization == null) return "CETE";
+        return organization.equals("ROCS") ? "CETE" : organization;
+    }
+
+    private String determineCourse(String sectionName) {
+        if (sectionName == null) return "UNKNOWN";
+        String prefix = sectionName.split("[-–]")[0].toUpperCase();
+        return switch (prefix) {
+            case "IT" -> "BSIT";
+            case "CS" -> "BSCS";
+            case "ECE" -> "BSECE";
+            case "HM" -> "BSHM";
+            case "TM" -> "BSTM";
+            case "BSA" -> "BSA";
+            default -> "BS" + prefix;
+        };
     }
 }

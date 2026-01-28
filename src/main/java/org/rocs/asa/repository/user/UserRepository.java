@@ -1,7 +1,10 @@
 package org.rocs.asa.repository.user;
 
+import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Set;
@@ -32,6 +35,9 @@ public interface UserRepository extends JpaRepository<User,Long> {
     List<User> findAllByRole(String role);
 
     User findUserByPersonContactNumber(String contactNumber);
+
+    @Query("SELECT u.userId FROM Student s JOIN s.user u WHERE s.section.sectionName = :sectionName AND u.role = :role")
+    List<String> findUserIdsBySectionNameAndRole(@Param("sectionName") String sectionName, @Param("role") String role);
 
     List<User> findByUserIdIn(Set<String> userIds);
 }
