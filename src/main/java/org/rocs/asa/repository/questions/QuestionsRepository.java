@@ -9,8 +9,7 @@ import java.util.List;
 
 public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     List<Questions> findByGuidanceStaffId(Long guidanceStaffId);
-    
-    @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName")
+    @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName ORDER BY q.dateCreated DESC")
     List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
 
     @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT ei.question.id FROM ExitInterview ei WHERE ei.student.id = :studentId)")

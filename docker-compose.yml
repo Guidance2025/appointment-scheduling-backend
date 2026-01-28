@@ -7,7 +7,7 @@ services:
       APP_USER: guidance
       APP_USER_PASSWORD: Changeme0
     ports:
-      - "1522:1522"
+      - "1522:1521"
     volumes:
       - oracle-data:/opt/oracle/oradata
       - ./init-scripts:/container-entrypoint-initdb.d

@@ -85,22 +85,20 @@ public class UserController {
             loginAttemptService.evictUserToLoginAttemptCache(user.getUsername());
 
             Map<String, Object> response = userService.buildLoginResponse(loginUser);
-            LOGGER.info("✅ User logged in successfully: {}", user.getUsername());
+            LOGGER.info("User logged in successfully: {}", user.getUsername());
             return new ResponseEntity<>(response, jwtHeader, HttpStatus.OK);
 
         } catch (LockedException e) {
             LOGGER.warn("🔒 Login attempt for locked account: {}", user.getUsername());
 
-            // FIXED: Determine lock type reliably
             boolean isFailedAttemptLock = loginAttemptService.hasExceedMaxAttempts(user.getUsername());
 
             if (isFailedAttemptLock) {
-                // FIXED: Return structured error response with lock type
                 return createStructuredErrorResponse(
                         HttpStatus.LOCKED,
                         "ACCOUNT LOCKED DUE TO MULTIPLE FAILED LOGIN ATTEMPTS",
                         "FAILED_ATTEMPTS",
-                        180 // 3 minutes in seconds
+                        180
                 );
             } else {
                 // FIXED: Return structured error response for admin lock

@@ -111,7 +111,7 @@ create table tbl_moods (
     student_id number(20,0),
     mood varchar2(64 char),
     entry_date timestamp(6),
-    mood_notes varchar2(128),
+    mood_notes varchar2(128 char),
     primary key (mood_id));
 
 create table tbl_questions (
@@ -175,95 +175,95 @@ create table tbl_notification (
 -- Foreign Keys
 alter table tbl_user_device_token
     add constraint FK_TBL_PERSON_USER_ID
-    foreign key (user_id) references tbl_login;
+    foreign key (user_id) references tbl_login(login_id);
 
 alter table tbl_login
     add constraint FK_TBL_LOGIN_PERSON_ID
-    foreign key (person_id) references tbl_person;
+    foreign key (person_id) references tbl_person(id);
 
 alter table tbl_guidance_staff
     add constraint FK_TBL_EMPLOYEE_NUMBER_PERSON_ID
-    foreign key (person_id) references tbl_person;
+    foreign key (person_id) references tbl_person(id);
 
 alter table tbl_student
     add constraint FK_TBL_STUDENT_SECTION_ID
-    foreign key (section_id) references tbl_section;
+    foreign key (section_id) references tbl_section(section_id);
 
 alter table tbl_student
     add constraint FK_TBL_STUDENT_PERSON_ID
-    foreign key (person_id) references tbl_person;
+    foreign key (person_id) references tbl_person(id);
 
 alter table tbl_counseling_session
      add constraint FK_TBL_COUNSELING_SESSION_STUDENT_ID
-     foreign key (student_id) references tbl_student;
+     foreign key (student_id) references tbl_student(id);
 
 alter table tbl_counseling_session
     add constraint FK_TBL_COUNSELING_SESSION_EMPLOYEE_NUMBER
-    foreign key (employee_number) references tbl_guidance_staff;
+    foreign key (employee_number) references tbl_guidance_staff(employee_number);
 
 alter table tbl_appointment
      add constraint FK_TBL_APPOINTMENT_STUDENT_NUMBER
-     foreign key (student_id) references tbl_student;
+     foreign key (student_id) references tbl_student(id);
 
 alter table tbl_appointment
     add constraint FK_TBL_APPOINTMENT_EMPLOYEE_NUMBER
-    foreign key (employee_number) references tbl_guidance_staff;
+    foreign key (employee_number) references tbl_guidance_staff(employee_number);
 
 alter table tbl_moods
      add constraint FK_TBL_MOODS_STUDENT_NUMBER
-     foreign key (student_id) references tbl_student;
+     foreign key (student_id) references tbl_student(id);
 
 alter table tbl_questions
         add constraint FK_TBL_QUESTIONS_CATEGORY_ID
-    foreign key (category_id) references tbl_category;
+    foreign key (category_id) references tbl_category(category_id);
 
 alter table tbl_questions
     add constraint FK_TBL_QUESTIONS_EMPLOYEE_NUMBER
-    foreign key (employee_number) references tbl_guidance_staff;
+    foreign key (employee_number) references tbl_guidance_staff(employee_number);
 
 alter table tbl_exit_interview
     add constraint FK_TBL_EXIT_INTERVIEW_STUDENT_ID
-    foreign key (student_id) references tbl_student;
+    foreign key (student_id) references tbl_student(id);
 
 alter table tbl_exit_interview
     add constraint FK_TBL_EXIT_INTERVIEW_QUESTION_ID
-    foreign key (question_id) references tbl_questions;
+    foreign key (question_id) references tbl_questions(question_id);
 
 alter table tbl_anonymous_response
     add constraint FK_TBL_ANONYMOUS_RESPONSE_QUESTION_ID
-    foreign key (question_id) references tbl_questions;
+    foreign key (question_id) references tbl_questions(question_id);
 
 alter table tbl_posts
     add constraint FK_TBL_POSTS_EMPLOYEE_NUMBER
-    foreign key (employee_number) references tbl_guidance_staff;
+    foreign key (employee_number) references tbl_guidance_staff(employee_number);
 
 alter table tbl_posts
     add constraint FK_TBL_POSTS_SECTION_ID
-    foreign key (section_id) references tbl_section;
+    foreign key (section_id) references tbl_section(section_id);
 
 alter table tbl_posts
         add constraint FK_TBL_POSTS_CATEGORY_ID
-    foreign key (category_id) references tbl_category;
+    foreign key (category_id) references tbl_category(category_id);
 
 alter table tbl_posts
     add constraint FK_TBL_POSTS_QUESTION_ID
-    foreign key (question_id) references tbl_questions;
+    foreign key (question_id) references tbl_questions(question_id);
 
 alter table tbl_self_assessment
     add constraint FK_TBL_SELF_ASSESSMENT_STUDENT_ID
-    foreign key (student_id) references tbl_student;
+    foreign key (student_id) references tbl_student(id);
 
 alter table tbl_self_assessment
     add constraint FK_TBL_SELF_ASSESSMENT_QUESTION_ID
-    foreign key (question_id) references tbl_questions;
+    foreign key (question_id) references tbl_questions(question_id);
 
 alter table tbl_notification
     add constraint FK_TBL_NOTIFICATION_USER_ID
-    foreign key (user_id) references tbl_login;
+    foreign key (user_id) references tbl_login(login_id);
 
 alter table tbl_notification
     add constraint FK_TBL_NOTIFICATION_APPOINTMENT_ID
-    foreign key (appointment_id) references tbl_appointment;
+    foreign key (appointment_id) references tbl_appointment(appointment_id);
 
 -- Insert test data
 insert into tbl_person (first_name, middle_name, last_name, age, birthdate, gender, email, address, contact_number)
@@ -379,8 +379,9 @@ values (3, 2, 'inline with the BSIT', to_date('2025-08-01','YYYY-MM-DD'));
 insert into tbl_exit_interview (question_id, student_id, response_text, submitted_date)
 values(3, 5, 'inline with the BA course', to_date('2025-08-02','YYYY-MM-DD'));
 
+-- FIXED: Escaped apostrophes in "I'm" using double single quotes
 insert into tbl_anonymous_response (question_id, response_text, response_date)
-values (2, 'as of now, im not ok,  i just want to rest for a long time.', to_date('2025-08-03','YYYY-MM-DD'));
+values (2, 'as of now, i''m not ok, i just want to rest for a long time.', to_date('2025-08-03','YYYY-MM-DD'));
 insert into tbl_anonymous_response (question_id, response_text, response_date)
 values (2, 'i feel ok and confident', to_date('2025-08-03','YYYY-MM-DD'));
 insert into tbl_anonymous_response (question_id, response_text, response_date)
@@ -389,7 +390,7 @@ values (2, 'super tired.', to_date('2025-08-03','YYYY-MM-DD'));
 insert into tbl_posts (employee_number, section_id, category_id, question_id, post_content, posted_date)
 values (1, 1, 2, 2, 'Tips for managing exam stress—share your strategies!', to_timestamp('2025-08-01 08:00:00.00', 'yyyy-mm-dd hh24:mi:ss:ff'));
 insert into tbl_posts (employee_number, section_id, category_id, question_id, post_content, posted_date)
-values(2, 2, 2, 2, 'Let's talk about study habits that work.', to_timestamp('2025-08-02 08:00:00.00', 'yyyy-mm-dd hh24:mi:ss:ff'));
+values(2, 2, 2, 2, 'Let''s talk about study habits that work.', to_timestamp('2025-08-02 08:00:00.00', 'yyyy-mm-dd hh24:mi:ss:ff'));
 
 insert into tbl_self_assessment (student_id, question_id, response_text, response_date)
 values (3, 4, 'I feel overwhelmed but coping.', to_timestamp('2025-08-01 08:00:00.00', 'yyyy-mm-dd hh24:mi:ss:ff'));
