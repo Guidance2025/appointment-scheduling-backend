@@ -62,7 +62,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         if (tokens.isEmpty()) {
             LOGGER.warn("No device tokens found for user: {}", targetUserId);
-            throw new DeviceTokenAlreadyExist("Device Token does not exist");
+            return new ArrayList<>();
         }
 
         Map<String, String> data = Map.of("actionType", actionType);

@@ -70,10 +70,10 @@ public class AppointmentCreationService {
         Student student = findStudentByNumber(request.getStudent().getStudentNumber());
         GuidanceStaff guidanceStaff = guidanceService.findAuthenticatedGuidanceStaff();
 
-       validator.validatePendingAppointmentLimit(student.getId());
-       validator.validateStudentCounselorDailyLimit(student.getId(), guidanceStaff.getId(), scheduledDateUTC);
-       validator.validateStudentTimeAvailability(student.getId(), scheduledDateUTC, endDateUTC);
-       validator.validateGuidanceStaffAvailability(guidanceStaff.getId(), scheduledDateUTC, endDateUTC);
+        validator.validatePendingAppointmentLimit(student.getId());
+        validator.validateStudentCounselorDailyLimit(student.getId(), guidanceStaff.getId(), scheduledDateUTC);
+        validator.validateStudentTimeAvailability(student.getId(), scheduledDateUTC, endDateUTC);
+        validator.validateGuidanceStaffAvailability(guidanceStaff.getId(), scheduledDateUTC, endDateUTC);
 
         Appointment saved = createAndSave(student, guidanceStaff, request, scheduledDateUTC, endDateUTC);
 

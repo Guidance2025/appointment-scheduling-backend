@@ -44,7 +44,6 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final StudentService studentService;
-
     @Autowired
     public PostServiceImpl(PostRepository postRepository, CategoryRepository categoryRepository, GuidanceService guidanceService, JdbcTemplate jdbcTemplate, StudentRepository studentRepository, NotificationService notificationService, UserRepository userRepository, SectionRepository sectionRepository, StudentService studentService, NotificationService notificationService1) {
         this.postRepository = postRepository;

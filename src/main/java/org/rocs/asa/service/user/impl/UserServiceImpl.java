@@ -148,19 +148,31 @@ public class UserServiceImpl implements UserService, UserDetailsService {
 
         if (person == null) throw new PersonNotFoundException("Person is required");
         if (section == null) throw new SectionNotFoundException("Section is required");
-        if (studentNumber == null || studentNumber.trim().isEmpty()) throw new IllegalArgumentException("Student number is required");
-
-        // Auto-generate username and password
-        String username = normalizeUsername(person.getLastName());
-        String firstname = normalizeUsername(person.getFirstName());
-        String lastFourDigits = studentNumber.substring(Math.max(0, studentNumber.length() - 4));
-        String password = firstname + lastFourDigits;
+        if (studentNumber == null || studentNumber.trim().isEmpty())
+            throw new IllegalArgumentException("Student number is required");
 
         String email = person.getEmail().trim().toLowerCase();
 
-        if (findUserByUsername(username) != null) throw new UsernameExistsException("Username already exists");
-        if (findUserByPersonEmail(email) != null) throw new EmailAlreadyExistException("Email already exists");
-        if (studentRepository.findStudentByStudentNumber(studentNumber) != null) throw new StudentNumberAlreadyExistException("Student number already exists");
+        if (findUserByPersonEmail(email) != null)
+            throw new EmailAlreadyExistException("Email already exists");
+        if (studentRepository.findStudentByStudentNumber(studentNumber) != null)
+            throw new StudentNumberAlreadyExistException("Student number already exists");
+
+        String username = normalizeUsername(studentNumber.replace("-", ""));
+
+        String firstname = normalizeUsername(person.getFirstName());
+        String lastname = normalizeUsername(person.getLastName());
+        String lastFourDigits = studentNumber.substring(Math.max(0, studentNumber.length() - 4));
+
+        String password = firstname.substring(0, Math.min(3, firstname.length())) +
+                lastname.substring(0, Math.min(3, lastname.length())) +
+                lastFourDigits;
+
+        LOGGER.info("===================================");
+        LOGGER.info("Student Account : ");
+        LOGGER.info("Username: {}", username);
+        LOGGER.info("Password: {}", password);
+        LOGGER.info("===================================");
 
         validatePassword(password);
 
@@ -179,20 +191,18 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         newUser.setAuthorities(Arrays.stream(STUDENT_ROLE.getAuthorities()).toList());
         User savedUser = userRepository.save(newUser);
 
-        // Handle section - check if it already exists by sectionName and clusterHead
         String sectionName = section.getSectionName().trim();
         String clusterHead = section.getClusterHead().trim();
 
-        // Try to find existing section
+        Section savedSection;
+
         Section existingSection = sectionRepository.findBySectionNameAndClusterHead(sectionName, clusterHead);
 
-        Section savedSection;
         if (existingSection != null) {
-            // Use existing section
             savedSection = existingSection;
-            LOGGER.info("Using existing section: {} with cluster head: {}", sectionName, clusterHead);
+            LOGGER.info("Reusing existing section: {} with cluster head: {}", sectionName, clusterHead);
         } else {
-            // Create new section
+            // Section doesn't exist - create new one
             section.setOrganization(determineOrganization(sectionName));
             section.setClusterName(determineClusterName(section.getOrganization(), sectionName));
             section.setCourse(determineCourse(sectionName));
@@ -224,21 +234,25 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         Person person = registration.getGuidanceStaff().getPerson();
         if (person == null) throw new PersonNotFoundException("Person is required");
 
-        // Auto-generate username from lastname
-        String username = normalizeUsername(person.getLastName());
-
-        // Auto-generate password from firstname + lastname
-        String firstname = normalizeUsername(person.getFirstName());
-        String lastname = normalizeUsername(person.getLastName());
-        String password = firstname + lastname;
-
         String email = person.getEmail().trim().toLowerCase();
-
-        if (findUserByUsername(username) != null)
-            throw new UsernameExistsException("Username already exists");
         if (findUserByPersonEmail(email) != null)
             throw new EmailAlreadyExistException("Email already exists");
 
+        String username = normalizeUsername(email.split("@")[0]);
+
+        if (findUserByUsername(username) != null) {
+            username = username + RandomStringUtils.randomNumeric(3);
+        }
+
+        String firstname = normalizeUsername(person.getFirstName());
+        String lastname = normalizeUsername(person.getLastName());
+        String password = firstname.substring(0, Math.min(3, firstname.length())) +
+                lastname.substring(0, Math.min(3, lastname.length())) +
+                RandomStringUtils.randomNumeric(4);
+        LOGGER.info("===================================");
+        LOGGER.info("Username " + username);
+        LOGGER.info("Password " + password);
+        LOGGER.info("===================================");
         validatePassword(password);
 
         person.setEmail(email);
@@ -262,14 +276,12 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         guidanceStaff.setPositionInRc(registration.getGuidanceStaff().getPositionInRc());
         GuidanceStaff savedGuidanceStaff = guidanceStaffRepository.save(guidanceStaff);
 
-        // Prepare registration response
         Registration savedRegistration = new Registration();
         savedRegistration.setGuidanceStaff(savedGuidanceStaff);
 
-        // Send email
         emailService.sendNewRegisterAccountEmail(email, username, password);
 
-        LOGGER.info("GuidanceStaff account created: {} / {}", username, password);
+        LOGGER.info("GuidanceStaff account created - Username: {}", username);
         return savedRegistration;
     }
 

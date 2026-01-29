@@ -101,19 +101,6 @@ public class StudentController {
         Student updatedStudent = studentService.updateStudentProfile(id, request);
         return ResponseEntity.ok(updatedStudent);
     }
-
-    /**
-     * Student reschedules their appointment
-     * POST /student/appointment/reschedule
-     *
-     * Request body:
-     * {
-     *   "appointmentId": 123,
-     *   "newScheduledDate": "2025-01-20T10:00:00",  // PH time
-     *   "newEndDate": "2025-01-20T11:00:00",        // PH time
-     *   "reason": "Need to attend class"            // Optional
-     * }
-     */
     @PostMapping("/reschedule")
     public ResponseEntity<?> rescheduleAppointment(@Valid @RequestBody RescheduleAppointmentRequest request) {
             Appointment rescheduled = appointmentService.studentRescheduleAppointment(request);
