@@ -158,7 +158,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         if (studentRepository.findStudentByStudentNumber(studentNumber) != null)
             throw new StudentNumberAlreadyExistException("Student number already exists");
 
-        String username = studentNumber.replace("-", "").toUpperCase();
+        String username = normalizeUsername(studentNumber.replace("-", ""));
 
         String firstname = normalizeUsername(person.getFirstName());
         String lastname = normalizeUsername(person.getLastName());
@@ -234,20 +234,16 @@ public class UserServiceImpl implements UserService, UserDetailsService {
         Person person = registration.getGuidanceStaff().getPerson();
         if (person == null) throw new PersonNotFoundException("Person is required");
 
-        // Email validation
         String email = person.getEmail().trim().toLowerCase();
         if (findUserByPersonEmail(email) != null)
             throw new EmailAlreadyExistException("Email already exists");
 
-        // Generate username from email prefix
         String username = normalizeUsername(email.split("@")[0]);
 
-        // Handle collision
         if (findUserByUsername(username) != null) {
             username = username + RandomStringUtils.randomNumeric(3);
         }
 
-        // Generate password: first3chars + last3chars + 4randomdigits
         String firstname = normalizeUsername(person.getFirstName());
         String lastname = normalizeUsername(person.getLastName());
         String password = firstname.substring(0, Math.min(3, firstname.length())) +
