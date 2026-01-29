@@ -15,6 +15,7 @@ import org.rocs.asa.repository.questions.QuestionsRepository;
 import org.rocs.asa.repository.self.assesment.SelfAssessmentRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.repository.user.UserRepository;
+import org.rocs.asa.service.guidance.GuidanceService;
 import org.rocs.asa.service.notification.NotificationService;
 import org.rocs.asa.service.self.assessment.SelfAssesmentService;
 import org.rocs.asa.service.student.StudentService;
@@ -45,6 +46,8 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
     private UserRepository userRepository;
     private DeviceTokenRepository deviceTokenRepository;
     private CategoryRepository categoryRepository;
+    private GuidanceService guidanceService;
+
     @Autowired
     public SelfAssessmentServiceImpl(GuidanceStaffRepository guidanceStaffRepository,
                                      QuestionsRepository questionsRepository,
@@ -53,7 +56,7 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
                                      StudentService studentService,
                                      NotificationService notificationService,
                                      UserRepository userRepository,DeviceTokenRepository deviceTokenRepository,
-                                     CategoryRepository categoryRepository) {
+                                     CategoryRepository categoryRepository, GuidanceService guidanceService) {
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.questionsRepository = questionsRepository;
         this.selfAssessmentRepository = selfAssessmentRepository;
@@ -63,6 +66,7 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
         this.userRepository = userRepository;
         this.deviceTokenRepository = deviceTokenRepository;
         this.categoryRepository = categoryRepository;
+        this.guidanceService = guidanceService;
     }
 
     @Override
@@ -109,7 +113,7 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
         notificationService.sendNotificationToAllStudent(
                 studentUserIds,
                 "New Self Assessment Questions",
-                 " Posted new self-assessment questions.",
+                " Posted new self-assessment questions.",
                 "SELF ASSESSMENT UPDATE"
         );
 
@@ -166,5 +170,26 @@ public class SelfAssessmentServiceImpl implements SelfAssesmentService {
     public List<Questions> getUnansweredQuestionsForAuthenticatedStudent() {
         Student student = studentService.findByAuthenticatedStudent();
         return questionsRepository.findUnansweredSelfAssessmentByStudentId(student.getId(), "SELF ASSESSMENT");
+    }
+
+    @Override
+    @Transactional
+    public Questions updateQuestions(Long questionId, String questionText) {
+        if (questionText == null || questionText.trim().isEmpty()) {
+            throw new EmptyFieldException("Question text cannot be null or empty");
+        }
+
+        GuidanceStaff authenticatedStaff = guidanceService.findAuthenticatedGuidanceStaff();
+
+        Questions question = questionsRepository.findById(questionId)
+                .orElseThrow(() -> new QuestionDoesNotExistException("Question not found with id: " + questionId));
+
+        if (!question.getGuidanceStaff().getId().equals(authenticatedStaff.getId())) {
+            throw new GuidanceStaffNotFoundException("You are not authorized to update this question");
+        }
+
+        question.setQuestionText(questionText.trim());
+        LOGGER.info("Question updated successfully for ID: {}", questionId);
+        return questionsRepository.save(question);
     }
 }

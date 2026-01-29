@@ -13,4 +13,6 @@ public interface SelfAssesmentService {
     SelfAssessment studentResponse (SelfAssessmentRequest request);
     List <SelfAssessment> retrieveStudentResponse();
     List<Questions> getUnansweredQuestionsForAuthenticatedStudent();
+    Questions updateQuestions(Long questionId, String questionText);
+
 }

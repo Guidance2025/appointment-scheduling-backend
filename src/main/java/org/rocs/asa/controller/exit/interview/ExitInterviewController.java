@@ -57,4 +57,14 @@ public class ExitInterviewController {
         List<Questions> unansweredQuestion = exitInterviewService.getUnansweredQuestionsForAuthenticatedStudent();
         return ResponseEntity.ok(unansweredQuestion);
     }
+
+    @PutMapping("/questions/{questionId}")
+    public ResponseEntity<Questions> updateQuestion(@PathVariable Long questionId, @RequestBody Map<String, Object> request) {
+        String questionText = (String) request.get("questionText");
+        if (questionText == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Questions updatedQuestion = exitInterviewService.updateQuestion(questionId, questionText);
+        return ResponseEntity.ok(updatedQuestion);
+    }
 }

@@ -57,4 +57,14 @@ public class SelfAssessmentController {
         List<Questions> unansweredQuestion = assesmentService.getUnansweredQuestionsForAuthenticatedStudent();
         return ResponseEntity.ok(unansweredQuestion);
     }
+
+    @PutMapping("/questions/{questionId}")
+    public ResponseEntity<Questions> updateQuestions(@PathVariable Long questionId, @RequestBody Map<String, Object> request) {
+        String questionText = (String) request.get("questionText");
+        if (questionText == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Questions updatedQuestion = assesmentService.updateQuestions(questionId, questionText);
+        return ResponseEntity.ok(updatedQuestion);
+    }
 }
