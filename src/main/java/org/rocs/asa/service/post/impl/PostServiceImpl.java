@@ -84,15 +84,15 @@ public class PostServiceImpl implements PostService {
         if (content.length() > 500) content = content.substring(0, 500);
 
         Long sectionId = resolveSectionId(request);
-        boolean isRestrictedCategory = "Announcement".equalsIgnoreCase(capped64) || "Events".equalsIgnoreCase(capped64);
-        if (isRestrictedCategory && sectionId == null) {
-            throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
-        }
+//        boolean isRestrictedCategory = "Announcement".equalsIgnoreCase(capped64) || "Events".equalsIgnoreCase(capped64);
+//        if (isRestrictedCategory && sectionId == null) {
+//            throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
+//        }
 
         Integer exists = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
                         "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
-                        "AND (p.section_id = ? OR (p.section_id IS NULL AND ? IS NULL)) " +
+                            "AND (p.section_id = ? OR (p.section_id IS NULL AND ? IS NULL)) " +
                         "AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND",
                 Integer.class, employeeNumber, capped64, sectionId, sectionId
         );
