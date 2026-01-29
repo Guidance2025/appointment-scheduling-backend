@@ -84,34 +84,36 @@ public class PostServiceImpl implements PostService {
 
         if (content.length() > 500) content = content.substring(0, 500);
 
-        // Single sectionId - optional for all categories except Announcement/Events
         Long sectionId = resolveSectionId(request);
         boolean isRestrictedCategory = "Announcement".equalsIgnoreCase(capped64) || "Events".equalsIgnoreCase(capped64);
         if (isRestrictedCategory && sectionId == null) {
             throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
         }
 
-        LOGGER.info("Creating post: employeeNumber={}, category={}, sectionId={}", employeeNumber, capped64, sectionId);
+        Integer exists = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
+                        "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
+                        "AND (p.section_id = ? OR (p.section_id IS NULL AND ? IS NULL)) " +
+                        "AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND",
+                Integer.class, employeeNumber, capped64, sectionId, sectionId
+        );
 
-        String sql = "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
-                "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
-                "AND ((p.section_id IS NULL AND ? IS NULL) OR p.section_id = ?) " +
-                "AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND";
-
-        try {
-            Integer exists = jdbcTemplate.queryForObject(sql, Integer.class, employeeNumber, capped64, sectionId, sectionId);
-            if (exists != null && exists > 0) {
-                LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={})", employeeNumber, capped64, sectionId);
-                return null;
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error in duplicate check query: {}", e.getMessage(), e);
-            throw e;  // Re-throw to see full error
+        if (exists != null && exists > 0) {
+            LOGGER.warn("Duplicate create ignored (emp={}, catName='{}', section={})", employeeNumber, capped64, sectionId);
+            return null;
         }
 
-        Category toSave = new Category();
-        toSave.setCategoryName(capped64);
-        Category savedCategory = categoryRepository.save(toSave);
+        Optional<Category> existingCategory = categoryRepository.findByCategoryNameIgnoreCase(capped64);
+        Category savedCategory;
+        if (existingCategory.isPresent()) {
+            savedCategory = existingCategory.get();
+            LOGGER.debug("Reusing existing category: {}", capped64);
+        } else {
+            Category toSave = new Category();
+            toSave.setCategoryName(capped64);
+            savedCategory = categoryRepository.save(toSave);
+            LOGGER.debug("Created new category: {}", capped64);
+        }
 
         Post post = new Post();
         post.setEmployeeNumber(employeeNumber);
@@ -125,12 +127,14 @@ public class PostServiceImpl implements PostService {
                 saved.getPostId(), employeeNumber, savedCategory.getCategoryName(), sectionId);
 
         try {
-            List<String> studentUserIds = userRepository.findUserIdsBySectionNameAndRole(String.valueOf(sectionId),Role.STUDENT_ROLE.name());
-
+            List<String> studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
+                    .stream()
+                    .map(User::getUserId)
+                    .collect(Collectors.toList());
             notificationService.sendNotificationToAllStudent(
                     studentUserIds,
                     "New Post from Guidance",
-                    "A new " + capped64.toLowerCase() + " has been posted. Check your dashboard!",
+                    "A new " + capped64.toLowerCase() + " has been posted. Check your Content Hub!",
                     "POST_UPDATE"
             );
         } catch (Exception e) {

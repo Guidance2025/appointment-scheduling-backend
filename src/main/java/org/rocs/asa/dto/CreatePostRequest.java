@@ -14,6 +14,5 @@ public class CreatePostRequest {
         private String categoryName;
 
         private String sectionName;
-        // Single sectionId instead of sectionIds
         private Long sectionId;
 }

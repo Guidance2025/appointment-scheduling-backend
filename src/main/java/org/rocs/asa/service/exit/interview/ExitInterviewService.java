@@ -13,4 +13,5 @@ public interface ExitInterviewService {
     ExitInterview studentResponse(ExitInterviewRequest request);
     List<ExitInterview> retrieveStudentResponse();
     List<Questions> getUnansweredQuestionsForAuthenticatedStudent();
+    Questions updateQuestion(Long questionId, String questionText);
 }

@@ -17,6 +17,7 @@ import org.rocs.asa.repository.questions.QuestionsRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.exit.interview.ExitInterviewService;
+import org.rocs.asa.service.guidance.GuidanceService;
 import org.rocs.asa.service.notification.NotificationService;
 import org.rocs.asa.service.student.StudentService;
 import org.rocs.asa.domain.category.Category;
@@ -46,6 +47,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
     private UserRepository userRepository;
     private DeviceTokenRepository deviceTokenRepository;
     private CategoryRepository categoryRepository;
+    private GuidanceService guidanceService;
 
     @Autowired
     public ExitInterviewServiceImpl(GuidanceStaffRepository guidanceStaffRepository,
@@ -56,7 +58,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
                                     NotificationService notificationService,
                                     UserRepository userRepository,
                                     DeviceTokenRepository deviceTokenRepository,
-                                    CategoryRepository categoryRepository) {
+                                    CategoryRepository categoryRepository, GuidanceService guidanceService) {
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.questionsRepository = questionsRepository;
         this.exitInterviewRepository = exitInterviewRepository;
@@ -66,6 +68,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
         this.userRepository = userRepository;
         this.deviceTokenRepository = deviceTokenRepository;
         this.categoryRepository = categoryRepository;
+        this.guidanceService = guidanceService;
     }
 
     @Override
@@ -161,5 +164,26 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
     public List<Questions> getUnansweredQuestionsForAuthenticatedStudent() {
         Student student = studentService.findByAuthenticatedStudent();
         return questionsRepository.findUnansweredExitInterviewByStudentId(student.getId(), "Exit Interview");
+    }
+
+    @Override
+    @Transactional
+    public Questions updateQuestion(Long questionId, String questionText) {
+        if (questionText == null || questionText.trim().isEmpty()) {
+            throw new EmptyFieldException("Question text cannot be null or empty");
+        }
+
+        GuidanceStaff authenticatedStaff = guidanceService.findAuthenticatedGuidanceStaff();
+
+        Questions question = questionsRepository.findById(questionId)
+                .orElseThrow(() -> new QuestionDoesNotExistException("Question not found with id: " + questionId));
+
+        if (!question.getGuidanceStaff().getId().equals(authenticatedStaff.getId())) {
+            throw new GuidanceStaffNotFoundException("You are not authorized to update this question");
+        }
+
+        question.setQuestionText(questionText.trim());
+        LOGGER.info("Question updated successfully for ID: {}", questionId);
+        return questionsRepository.save(question);
     }
 }

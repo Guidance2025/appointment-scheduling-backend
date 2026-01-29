@@ -10,7 +10,7 @@ import java.util.Map;
 public interface PostService {
     Post createPost(CreatePostRequest request);
 
-    Post createQuoteOfTheDay(CreatePostRequest request);  // New method for quotes
+    Post createQuoteOfTheDay(CreatePostRequest request);
 
     List<Map<String, Object>> getAllPosts(int limit);
 
