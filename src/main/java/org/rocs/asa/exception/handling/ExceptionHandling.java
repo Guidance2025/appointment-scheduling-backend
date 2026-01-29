@@ -97,18 +97,22 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<HttpResponse> appointmentAlreadyExistException(AppointmentAlreadyExistException exception) {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
+
     @ExceptionHandler(DeviceTokenAlreadyExist.class)
     public ResponseEntity<HttpResponse> deviceTokenAlreadyExistException(DeviceTokenAlreadyExist exception) {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
+
     @ExceptionHandler(WeekEndException.class)
     public ResponseEntity<HttpResponse> weekEndException(WeekEndException exception) {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
     }
+
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<HttpResponse> rateLimitExceeded(RateLimitExceededException exception) {
         return createHttpResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage());
     }
+
     @ExceptionHandler(EmailAlreadyExistException.class)
     public ResponseEntity<HttpResponse> emailAlreadyExist(EmailAlreadyExistException exception) {
         return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
@@ -118,26 +122,88 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<HttpResponse> studentNotFound(StudentNotFoundException exception) {
         return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
+
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<String> handleOptimisticLock() {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body("This time slot was just booked. Please choose another time.");
     }
+
     @ExceptionHandler(PostNotFoundException.class)
     public ResponseEntity<HttpResponse> postNotFoundException(PostNotFoundException exception) {
         return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
+
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<?> notFound(NotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
     }
+
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<?> conflict(ConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
     }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<?> badRequest(BadRequestException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
+    }
+
+    // ========== NEW EXCEPTION HANDLERS FOR REGISTRATION ==========
+
+    /**
+     * Handles PersonNotFoundException thrown during registration
+     */
+    @ExceptionHandler(PersonNotFoundException.class)
+    public ResponseEntity<HttpResponse> personNotFoundException(PersonNotFoundException exception) {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    /**
+     * Handles SectionNotFoundException thrown during student registration
+     */
+    @ExceptionHandler(SectionNotFoundException.class)
+    public ResponseEntity<HttpResponse> sectionNotFoundException(SectionNotFoundException exception) {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    /**
+     * Handles StudentNumberAlreadyExistException thrown during student registration
+     */
+    @ExceptionHandler(StudentNumberAlreadyExistException.class)
+    public ResponseEntity<HttpResponse> studentNumberAlreadyExist(StudentNumberAlreadyExistException exception) {
+        return createHttpResponse(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    /**
+     * Handles InvalidPasswordException thrown during registration
+     */
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<HttpResponse> invalidPasswordException(InvalidPasswordException exception) {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    /**
+     * Handles TooManyAttemptsException thrown during password reset
+     */
+    @ExceptionHandler(TooManyAttemptsException.class)
+    public ResponseEntity<HttpResponse> tooManyAttemptsException(TooManyAttemptsException exception) {
+        return createHttpResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage());
+    }
+
+    /**
+     * Handles InvalidTokenException thrown during password reset verification
+     */
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<HttpResponse> invalidTokenException(InvalidTokenException exception) {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+    /**
+     * Handles IllegalArgumentException - catches validation errors
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<HttpResponse> illegalArgumentException(IllegalArgumentException exception) {
+        return createHttpResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> generic(Exception ex) {

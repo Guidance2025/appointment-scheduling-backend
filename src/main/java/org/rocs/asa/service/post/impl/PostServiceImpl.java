@@ -44,7 +44,6 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
     private final SectionRepository sectionRepository;
     private final StudentService studentService;
-
     @Autowired
     public PostServiceImpl(PostRepository postRepository, CategoryRepository categoryRepository, GuidanceService guidanceService, JdbcTemplate jdbcTemplate, StudentRepository studentRepository, NotificationService notificationService, UserRepository userRepository, SectionRepository sectionRepository, StudentService studentService, NotificationService notificationService1) {
         this.postRepository = postRepository;
@@ -91,8 +90,10 @@ public class PostServiceImpl implements PostService {
             throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
         }
 
+        // Debug logging for sectionId
         LOGGER.info("Creating post: employeeNumber={}, category={}, sectionId={}", employeeNumber, capped64, sectionId);
 
+        // Fixed duplicate-check query to handle null sectionId properly
         String sql = "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
                 "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
                 "AND ((p.section_id IS NULL AND ? IS NULL) OR p.section_id = ?) " +
@@ -124,6 +125,7 @@ public class PostServiceImpl implements PostService {
         LOGGER.info("Post created id={} by employeeNumber={} with category '{}' and section={}",
                 saved.getPostId(), employeeNumber, savedCategory.getCategoryName(), sectionId);
 
+        // Send notification to all students (unchanged)
         try {
             List<String> studentUserIds = userRepository.findUserIdsBySectionNameAndRole(String.valueOf(sectionId),Role.STUDENT_ROLE.name());
 
@@ -146,8 +148,9 @@ public class PostServiceImpl implements PostService {
         CreatePostRequest quoteRequest = new CreatePostRequest();
         quoteRequest.setPostContent(request.getPostContent());
         quoteRequest.setCategoryName("Quote");
+//        quoteRequest.setSectionId(request.getSectionId());  // Optional
 
-        return createPost(quoteRequest);
+        return createPost(quoteRequest);  // Reuse logic
     }
 
     @Override
