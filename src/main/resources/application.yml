@@ -13,3 +13,33 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
+        jpa:
+          show-sql: true
+          hibernate:
+            ddl-auto: create
+
+        jwt:
+          secret: ${JWT_SECRET:thebigbrownfoxjumpsoverthelazydog}
+
+        firebase:
+          project-id: appointment-notification-cc54d
+          service-account-file: ${FIREBASE_CONFIG:firebase-service-account.json}
+
+        server:
+          address: 0.0.0.0
+          port: 8080
+
+        password:
+          reset:
+            token:
+              expiration:
+                hours: 24
+        admin:
+          default:
+            username: ${ADMIN_USERNAME:admin}
+            password: ${ADMIN_PASSWORD:123123}
+            email: ${ADMIN_EMAIL:admin@guidance.edu}
+          auto-create: true
+        appointment:
+          max-pending-per-student: 1
