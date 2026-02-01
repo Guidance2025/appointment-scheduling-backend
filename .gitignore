@@ -25,5 +25,3 @@ build/
 
 # Firebase service account
 src/main/resources/firebase-service-account.json
-docker-compose.yml 
-src/main/resources/application.yml 
