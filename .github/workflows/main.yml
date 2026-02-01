@@ -7,11 +7,12 @@ on:
     branches: [ "master" ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -19,29 +20,69 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-      - name: Build with Maven
-        run: mvn -B package --file pom.xml
 
       - name: Create Firebase credentials
         run: |
           mkdir -p src/main/resources
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > src/main/resources/firebase-service-account.json
-          echo "Firebase file created"
+          echo " Firebase credentials created"
 
-      - name: Build Docker images
+      - name: Build with Maven
+        run: mvn -B package --file pom.xml
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Create .env file for Docker
+        run: |
+          cat > .env << EOF
+          DB_URL=jdbc:postgresql://db.knwezkgbhersnokzzhwv.supabase.co:5432/postgres
+          DB_USERNAME=postgres
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          FRONTEND_URL=http://localhost:5173
+          FIREBASE_CONFIG=/app/firebase-service-account.json
+          DDL_AUTO=update
+          EOF
+          echo " .env file created"
+
+      - name: Build Docker image
         run: docker compose build
 
-      - name: Start containers in background
+      - name: Start containers for integration tests
         run: docker compose up -d
 
       - name: Wait for application to start
-        run: sleep 15
+        run: sleep 20
 
       - name: Check if containers are running
         run: docker compose ps
 
-      - name: Check container logs
+      - name: Test application health
+        run: |
+          echo "Testing application health..."
+          for i in {1..10}; do
+            if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+              echo " Application is healthy!"
+              exit 0
+            fi
+            echo " Waiting for application..($i/10)"
+            sleep 3
+          done
+          echo " Application failed health check"
+          docker compose logs
+          exit 1
+
+      - name: Show container logs on failure
+        if: failure()
         run: docker compose logs
 
       - name: Stop containers
+        if: always()
         run: docker compose down
+
+      - name: CI/CD Complete
+        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+        run: |
+          echo " All tests passed!"
+          echo " Render will auto-deploy shortly..."
