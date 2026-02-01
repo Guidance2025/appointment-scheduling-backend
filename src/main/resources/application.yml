@@ -1,10 +1,11 @@
 spring:
+  application:
+    name: appointment-scheduling-api
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
   jpa:
     show-sql: true
     hibernate:
@@ -14,32 +15,34 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-        jpa:
-          show-sql: true
-          hibernate:
-            ddl-auto: create
+server:
+  address: 0.0.0.0
+  port: 8080
 
-        jwt:
-          secret: ${JWT_SECRET:thebigbrownfoxjumpsoverthelazydog}
+jwt:
+  secret: ${JWT_SECRET:thebigbrownfoxjumpsoverthelazydog}
 
-        firebase:
-          project-id: appointment-notification-cc54d
-          service-account-file: ${FIREBASE_CONFIG:firebase-service-account.json}
+firebase:
+  project-id: appointment-notification-cc54d
+  service-account-file: ${FIREBASE_CONFIG:firebase-service-account.json}
 
-        server:
-          address: 0.0.0.0
-          port: 8080
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  frontend-url: ${FRONTEND_URL}
+  endpoints:
+    password-reset-verify: "/user/password-reset/verify"
 
-        password:
-          reset:
-            token:
-              expiration:
-                hours: 24
-        admin:
-          default:
-            username: ${ADMIN_USERNAME:admin}
-            password: ${ADMIN_PASSWORD:123123}
-            email: ${ADMIN_EMAIL:admin@guidance.edu}
-          auto-create: true
-        appointment:
-          max-pending-per-student: 1
+password:
+  reset:
+    token:
+      expiration:
+        hours: 24
+admin:
+  default:
+    username: ${ADMIN_USERNAME}
+    password: ${ADMIN_PASSWORD}
+    email: ${ADMIN_EMAIL}
+  auto-create: true
+
+appointment:
+  max-pending-per-student: 1
