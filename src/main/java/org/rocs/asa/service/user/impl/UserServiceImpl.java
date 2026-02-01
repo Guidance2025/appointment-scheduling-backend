@@ -2,7 +2,6 @@ package org.rocs.asa.service.user.impl;
 
 import jakarta.mail.MessagingException;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.registration.Registration;
@@ -20,7 +19,6 @@ import org.rocs.asa.service.email.EmailService;
 import org.rocs.asa.service.login.attempts.LoginAttemptService;
 import org.rocs.asa.service.password.reset.PasswordResetTokenService;
 import org.rocs.asa.service.user.UserService;
-import org.rocs.asa.utils.security.enumeration.Role;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -202,7 +200,6 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             savedSection = existingSection;
             LOGGER.info("Reusing existing section: {} with cluster head: {}", sectionName, clusterHead);
         } else {
-            // Section doesn't exist - create new one
             section.setOrganization(determineOrganization(sectionName));
             section.setClusterName(determineClusterName(section.getOrganization(), sectionName));
             section.setCourse(determineCourse(sectionName));

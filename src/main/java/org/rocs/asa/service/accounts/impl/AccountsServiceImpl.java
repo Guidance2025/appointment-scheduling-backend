@@ -9,6 +9,7 @@ import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.exception.domain.*;
 import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
+import org.rocs.asa.repository.person.PersonRepository;
 import org.rocs.asa.repository.student.StudentRepository;
 import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.accounts.AccountsService;
@@ -31,19 +32,21 @@ public class AccountsServiceImpl implements AccountsService {
     private StudentRepository studentRepository;
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private EmailService emailService;
+    private PersonRepository personRepository;
 
     @Autowired
     public AccountsServiceImpl(UserRepository userRepository,
                                GuidanceStaffRepository guidanceStaffRepository,
                                StudentRepository studentRepository,
                                BCryptPasswordEncoder bCryptPasswordEncoder,
-                               EmailService emailService
+                               EmailService emailService,PersonRepository personRepository
     ) {
         this.userRepository = userRepository;
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.studentRepository = studentRepository;
         this.bCryptPasswordEncoder = bCryptPasswordEncoder;
         this.emailService = emailService;
+        this.personRepository = personRepository;
     }
 
 
@@ -129,7 +132,6 @@ public class AccountsServiceImpl implements AccountsService {
         userRepository.save(staffUser);
         LOGGER.info("Successfully Deleted ");
     }
-
     @Override
     @Transactional
     public void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) throws MessagingException {
@@ -177,9 +179,12 @@ public class AccountsServiceImpl implements AccountsService {
 
         User user = guidanceStaff.getUser();
         Person userGuidanceDetails = guidanceStaff.getPerson();
-        if(email != null || email.isBlank()) {
-            userGuidanceDetails.setEmail(email);
-            LOGGER.info("Email Updated Successfully for Guidance Employee");
+        if(email != null && !email.isBlank()) {
+            userGuidanceDetails.setEmail(email.trim());
+            personRepository.save(userGuidanceDetails);
+            LOGGER.info("Email Updated Successfully for Guidance Employee: {}", email);
+        } else {
+            LOGGER.info("Email not provided or blank, skipping email update");
         }
         if(isLocked != null) {
             user.setLocked(isLocked);

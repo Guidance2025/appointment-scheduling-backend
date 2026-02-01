@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class StudentServiceImpl implements StudentService {
     private static Logger LOGGER = LoggerFactory.getLogger(StudentServiceImpl.class);
@@ -44,5 +46,10 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public Student findByUser(User user) {
         return studentRepository.findByUser(user);
+    }
+
+    @Override
+    public List<Student> findBtStudentNumberStartingWith(String studentNumber) {
+        return studentRepository.findTop10ByStudentNumberStartingWithIgnoreCase(studentNumber);
     }
 }

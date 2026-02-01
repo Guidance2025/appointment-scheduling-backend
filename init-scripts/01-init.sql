@@ -1,10 +1,4 @@
--- Guidance Appointment System Database Initialization
--- This script runs automatically when the Oracle container starts for the first time
 
--- Note: The user 'guidance' is already created by docker-compose environment variables
--- So we skip: drop user guidance cascade; create user guidance; grant statements
-
--- Drop tables if they exist (for clean initialization)
 BEGIN
    FOR rec IN (SELECT table_name FROM user_tables) LOOP
       EXECUTE IMMEDIATE 'DROP TABLE ' || rec.table_name || ' CASCADE CONSTRAINTS';

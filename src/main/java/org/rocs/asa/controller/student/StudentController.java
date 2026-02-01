@@ -7,6 +7,7 @@ import org.rocs.asa.domain.student.information.response.StudentInfoResponse;
 import org.rocs.asa.domain.student.Student;
 import org.rocs.asa.domain.student.request.UpdateStudentProfileRequest;
 import org.rocs.asa.service.appointment.AppointmentService;
+import org.rocs.asa.service.student.StudentService;
 import org.rocs.asa.service.student.profile.impl.StudentProfileServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,8 +25,9 @@ import java.util.Map;
 @RequestMapping("/student")
 public class StudentController {
 
-    private StudentProfileServiceImpl studentService;
+    private StudentProfileServiceImpl studentProfileService;
     private AppointmentService appointmentService;
+    private StudentService studentService;
 
     /**
      * Constructs a new {@code StudentController} with the required dependencies.
@@ -33,12 +35,13 @@ public class StudentController {
      * This constructor is annotated with {@code Autowired} allows
      * Spring to inject the necessary beans at runtime.
      *
-     * @param studentService the service layer for managing student operations
+     * @param studentProfileService the service layer for managing student operations
      */
     @Autowired
-    public StudentController(StudentProfileServiceImpl studentService, AppointmentService appointmentService) {
-        this.studentService = studentService;
+    public StudentController(StudentProfileServiceImpl studentProfileService, AppointmentService appointmentService,StudentService studentService) {
+        this.studentProfileService = studentProfileService;
         this.appointmentService = appointmentService;
+        this.studentService = studentService;
     }
 
     /**
@@ -48,7 +51,7 @@ public class StudentController {
      */
     @PostMapping("/save/student-profile")
     public ResponseEntity<Student> createStudentProfile(@Valid @RequestBody Student student) {
-        Student newStudent = studentService.saveStudentProfile(student);
+        Student newStudent = studentProfileService.saveStudentProfile(student);
         return new ResponseEntity<>(newStudent, HttpStatus.OK);
     }
 
@@ -59,7 +62,7 @@ public class StudentController {
      */
     @GetMapping("/findBy/{studentNumber}")
     public ResponseEntity<StudentInfoResponse> getStudentByStudentNumber(@PathVariable String studentNumber) {
-        StudentInfoResponse studentInformation = studentService.getPersonByStudentNumber(studentNumber);
+        StudentInfoResponse studentInformation = studentProfileService.getPersonByStudentNumber(studentNumber);
         return new ResponseEntity<>(studentInformation, HttpStatus.OK);
     }
     @GetMapping("/appointment/{studentId}/by-status")
@@ -87,7 +90,7 @@ public class StudentController {
 
     @GetMapping("/retrieve/profile/{id}")
     public ResponseEntity<Student> getStudentProfile(@PathVariable Long id) {
-        Student student = studentService.getStudentProfile(id);
+        Student student = studentProfileService.getStudentProfile(id);
         return new ResponseEntity<>(student,HttpStatus.OK);
     }
     @GetMapping("/appointment/{id}")
@@ -98,13 +101,18 @@ public class StudentController {
 
     @PutMapping("/{id}/profile")
     public ResponseEntity<Student> updateStudentProfile(@PathVariable Long id, @RequestBody UpdateStudentProfileRequest request) {
-        Student updatedStudent = studentService.updateStudentProfile(id, request);
+        Student updatedStudent = studentProfileService.updateStudentProfile(id, request);
         return ResponseEntity.ok(updatedStudent);
     }
     @PostMapping("/reschedule")
     public ResponseEntity<?> rescheduleAppointment(@Valid @RequestBody RescheduleAppointmentRequest request) {
             Appointment rescheduled = appointmentService.studentRescheduleAppointment(request);
             return ResponseEntity.ok(rescheduled);
+    }
+    @GetMapping("/search/{studentNumber}")
+    public ResponseEntity<List<Student>> getStudentNumberStartingWith(@PathVariable String studentNumber) {
+        List<Student> studentNumberList = studentService.findBtStudentNumberStartingWith(studentNumber);
+                return ResponseEntity.ok(studentNumberList);
     }
 
 }
