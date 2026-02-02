@@ -42,9 +42,7 @@ appointment:
   max-pending-per-student: 1
 
 ---
-# ========================================
-# LOCAL DEVELOPMENT PROFILE
-# ========================================
+
 spring:
   config:
     activate:
@@ -64,18 +62,18 @@ spring:
         format_sql: true
 
 ---
-# ========================================
-# PRODUCTION PROFILE (Supabase)
-# ========================================
 spring:
   config:
     activate:
       on-profile: prod
   datasource:
-    url: ${DB_URL}
+    url: jdbc:postgresql://${DB_HOST:aws-1-ap-southeast-1.pooler.supabase.com}:${DB_PORT:6543}/${DB_NAME:postgres}?sslmode=require&preferQueryMode=simple
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 30000
   jpa:
     show-sql: false
     hibernate:
@@ -84,3 +82,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
