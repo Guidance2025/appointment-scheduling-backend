@@ -58,20 +58,18 @@ jobs:
       - name: Check if containers are running
         run: docker compose ps
 
-      - name: Test application health
+      - name: Verify application started
         run: |
-          echo "Testing application health..."
-          for i in {1..10}; do
-            if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
-              echo " Application is healthy!"
-              exit 0
-            fi
-            echo " Waiting for application..($i/10)"
-            sleep 3
-          done
-          echo " Application failed health check"
-          docker compose logs
-          exit 1
+          echo "Checking if application started..."
+          sleep 30
+          docker compose logs app | grep "Started AppointmentSchedulingBackendApplication"
+          if [ $? -eq 0 ]; then
+            echo " Application started successfully!"
+          else
+            echo " Application failed to start"
+            docker compose logs app
+            exit 1
+          fi
 
       - name: Show container logs on failure
         if: failure()

@@ -1,0 +1,86 @@
+spring:
+  application:
+    name: appointment-scheduling-api
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
+    base-url: ${APP_BASE_URL:http://localhost:8080}
+    endpoints:
+      password-reset-verify: "/user/password-reset/verify"
+  profiles:
+    active: ${SPRING_PROFILE:dev}
+
+server:
+  address: 0.0.0.0
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:thebigbrownfoxjumpsoverthelazydog}
+
+firebase:
+  project-id: ${FIREBASE_PROJECT_ID:}
+  service-account-file: ${FIREBASE_CONFIG:}
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  endpoints:
+    password-reset-verify: "/user/password-reset/verify"
+
+password:
+  reset:
+    token:
+      expiration:
+        hours: 24
+
+admin:
+  default:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:admin123}
+    email: ${ADMIN_EMAIL:admin@guidance.edu}
+  auto-create: true
+
+appointment:
+  max-pending-per-student: 1
+
+---
+# ========================================
+# LOCAL DEVELOPMENT PROFILE
+# ========================================
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://db:5432/appointment_db
+    username: postgres
+    password: postgres123
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+---
+# ========================================
+# PRODUCTION PROFILE (Supabase)
+# ========================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
