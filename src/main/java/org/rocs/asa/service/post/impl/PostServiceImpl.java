@@ -84,16 +84,14 @@ public class PostServiceImpl implements PostService {
         if (content.length() > 500) content = content.substring(0, 500);
 
         Long sectionId = resolveSectionId(request);
-//        boolean isRestrictedCategory = "Announcement".equalsIgnoreCase(capped64) || "Events".equalsIgnoreCase(capped64);
-//        if (isRestrictedCategory && sectionId == null) {
-//            throw new IllegalArgumentException("Section ID is required for category '" + capped64 + "'");
-//        }
 
+        // FIXED: Changed SYSTIMESTAMP to CURRENT_TIMESTAMP and used PostgreSQL interval syntax
+        // FIXED: Cast NULL parameter to BIGINT to help PostgreSQL determine parameter type
         Integer exists = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM tbl_posts p JOIN tbl_category c ON p.category_id = c.category_id " +
                         "WHERE p.employee_number = ? AND UPPER(TRIM(c.category_name)) = UPPER(TRIM(?)) " +
-                            "AND (p.section_id = ? OR (p.section_id IS NULL AND ? IS NULL)) " +
-                        "AND p.posted_date >= SYSTIMESTAMP - INTERVAL '5' SECOND",
+                        "AND (p.section_id = ? OR (p.section_id IS NULL AND CAST(? AS BIGINT) IS NULL)) " +
+                        "AND p.posted_date >= CURRENT_TIMESTAMP - INTERVAL '5 seconds'",
                 Integer.class, employeeNumber, capped64, sectionId, sectionId
         );
 
@@ -155,6 +153,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public List<Map<String, Object>> getAllPosts(int limit) {
+        // FIXED: Replaced ROWNUM with LIMIT, added alias to subquery, changed NVL to COALESCE
         String sql =
                 "SELECT * FROM ( " +
                         "  SELECT t.* FROM ( " +
@@ -165,7 +164,7 @@ public class PostServiceImpl implements PostService {
                         "      c.category_name, " +
                         "      s.section_name, " +
                         "      s.organization, " +
-                        "      TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by, " +
+                        "      TRIM(COALESCE(per.first_name, '') || ' ' || COALESCE(per.last_name, '')) AS posted_by, " +
                         "      ROW_NUMBER() OVER (PARTITION BY p.post_id ORDER BY p.posted_date DESC) AS rn " +
                         "    FROM tbl_posts p " +
                         "    JOIN tbl_category c ON p.category_id = c.category_id " +
@@ -176,13 +175,14 @@ public class PostServiceImpl implements PostService {
                         "  ) t " +
                         "  WHERE t.rn = 1 " +
                         "  ORDER BY t.posted_date DESC " +
-                        ") WHERE ROWNUM <= ?";
+                        ") AS subquery LIMIT ?";
 
         return jdbcTemplate.queryForList(sql, limit);
     }
 
     @Override
     public Map<String, Object> getQuoteOfTheDay() {
+        // FIXED: Changed TRUNC(p.posted_date) = TRUNC(SYSDATE) to DATE(p.posted_date) = CURRENT_DATE
         String todaySql =
                 "SELECT p.post_id, p.post_content, p.posted_date, " +
                         "       s.section_name, s.organization " +
@@ -190,7 +190,7 @@ public class PostServiceImpl implements PostService {
                         "JOIN tbl_category c ON p.category_id = c.category_id " +
                         "LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
                         "WHERE UPPER(TRIM(c.category_name)) = 'QUOTE' " +
-                        "  AND TRUNC(p.posted_date) = TRUNC(SYSDATE) " +
+                        "  AND DATE(p.posted_date) = CURRENT_DATE " +
                         "ORDER BY p.posted_date DESC " +
                         "FETCH FIRST 1 ROW ONLY";
         try {
@@ -215,6 +215,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Map<String, Object> getFeed(int limit) {
+        // FIXED: Replaced ROWNUM with LIMIT, added alias to subquery, changed NVL to COALESCE, changed TRUNC/SYSDATE
         String postsSql =
                 "SELECT * FROM ( " +
                         "  SELECT t.* FROM ( " +
@@ -225,7 +226,7 @@ public class PostServiceImpl implements PostService {
                         "      c.category_name, " +
                         "      s.section_name, " +
                         "      s.organization, " +
-                        "      TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by, " +
+                        "      TRIM(COALESCE(per.first_name, '') || ' ' || COALESCE(per.last_name, '')) AS posted_by, " +
                         "      ROW_NUMBER() OVER (PARTITION BY p.post_id ORDER BY p.posted_date DESC) AS rn " +
                         "    FROM tbl_posts p " +
                         "    JOIN tbl_category c ON p.category_id = c.category_id " +
@@ -236,7 +237,7 @@ public class PostServiceImpl implements PostService {
                         "  ) t " +
                         "  WHERE t.rn = 1 " +
                         "  ORDER BY t.posted_date DESC " +
-                        ") WHERE ROWNUM <= ?";
+                        ") AS subquery LIMIT ?";
 
         String quoteTodaySql =
                 "SELECT p.post_id, p.post_content, p.posted_date, s.section_name, s.organization " +
@@ -244,7 +245,7 @@ public class PostServiceImpl implements PostService {
                         "JOIN tbl_category c ON p.category_id = c.category_id " +
                         "LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
                         "WHERE UPPER(TRIM(c.category_name)) = 'QUOTE' " +
-                        "  AND TRUNC(p.posted_date) = TRUNC(SYSDATE) " +
+                        "  AND DATE(p.posted_date) = CURRENT_DATE " +
                         "ORDER BY p.posted_date DESC " +
                         "FETCH FIRST 1 ROW ONLY";
 
@@ -302,10 +303,11 @@ public class PostServiceImpl implements PostService {
     public List<Map<String, Object>> getPostsForStudent(Long studentId, int limit) {
         Long studentSectionId = getStudentSectionId(studentId);
 
+        // FIXED: Replaced ROWNUM with LIMIT, changed NVL to COALESCE
         String sql = "SELECT * FROM ( " +
                 "  SELECT p.post_id, p.post_content, p.posted_date, c.category_name, " +
                 "         s.section_name, s.organization, " +
-                "         TRIM(NVL(per.first_name, '') || ' ' || NVL(per.last_name, '')) AS posted_by " +
+                "         TRIM(COALESCE(per.first_name, '') || ' ' || COALESCE(per.last_name, '')) AS posted_by " +
                 "  FROM tbl_posts p " +
                 "  JOIN tbl_category c ON p.category_id = c.category_id " +
                 "  LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
@@ -314,7 +316,7 @@ public class PostServiceImpl implements PostService {
                 "  WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
                 "    AND (p.section_id IS NULL OR p.section_id = ?) " +
                 "  ORDER BY p.posted_date DESC " +
-                ") WHERE ROWNUM <= ?";
+                ") AS subquery LIMIT ?";
         return jdbcTemplate.queryForList(sql, studentSectionId, limit);
     }
 
