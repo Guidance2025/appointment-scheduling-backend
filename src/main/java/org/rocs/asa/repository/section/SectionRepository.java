@@ -12,9 +12,8 @@ public interface SectionRepository extends JpaRepository<Section,Long> {
 
     @Query("SELECT DISTINCT s.sectionName FROM Section s ORDER BY s.sectionName ASC")
     List<String> findAllDistinctSectionName();
-
     @Query(value = "SELECT * FROM tbl_section WHERE section_name = :sectionName " +
-            "AND ROWNUM = 1",
+            "LIMIT 1",
             nativeQuery = true)
     Optional<Section> findBySectionName(@Param("sectionName") String sectionName);
     /**
