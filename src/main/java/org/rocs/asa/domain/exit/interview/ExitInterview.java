@@ -6,6 +6,7 @@ import org.rocs.asa.domain.questions.Questions;
 import org.rocs.asa.domain.student.Student;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -26,5 +27,5 @@ public class ExitInterview {
 
     private String responseText;
 
-    private LocalDate submittedDate;
+    private LocalDateTime submittedDate;
 }

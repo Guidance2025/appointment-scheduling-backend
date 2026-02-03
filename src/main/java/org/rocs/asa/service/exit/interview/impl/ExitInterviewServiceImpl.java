@@ -149,7 +149,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
         saved.setResponseText(request.getResponseText());
         saved.setQuestion(question);
         saved.setStudent(authenticatedStudent);
-        saved.setSubmittedDate(LocalDate.now());
+        saved.setSubmittedDate(LocalDateTime.now());
         LOGGER.info("Exit Interview Response Submitted Successfully");
 
         return exitInterviewRepository.save(saved);
