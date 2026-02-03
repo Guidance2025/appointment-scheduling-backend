@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class CreatePostRequest {
         @NotBlank(message = "Post content cannot be empty")
@@ -15,4 +17,5 @@ public class CreatePostRequest {
 
         private String sectionName;
         private Long sectionId;
+        private List<String> sectionNames;
 }
