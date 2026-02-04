@@ -3,6 +3,7 @@ package org.rocs.asa.controller.counselor;
 import org.rocs.asa.domain.account.profile.request.CounselorProfileDto;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.guidance.staff.request.profile.UpdateGuidanceStaffProfileRequest;
+import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.service.profile.counselor.ProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,9 +33,9 @@ public class CounselorProfileController {
         return new ResponseEntity<>(profile, HttpStatus.OK);
     }
 
-    @PutMapping("/{guidanceStaffId}/profile")
-    public ResponseEntity<GuidanceStaff> updateStaffProfile(@PathVariable Long guidanceStaffId, @RequestBody UpdateGuidanceStaffProfileRequest request) {
-        GuidanceStaff updateProfile = profileService.updateProfile(guidanceStaffId,request);
+    @PutMapping("/{userId}/profile")
+    public ResponseEntity<?> updateStaffProfile(@PathVariable String userId, @RequestBody UpdateGuidanceStaffProfileRequest request) {
+        Person updateProfile = profileService.updateProfile(userId,request);
         return ResponseEntity.ok(updateProfile);
     }
 }

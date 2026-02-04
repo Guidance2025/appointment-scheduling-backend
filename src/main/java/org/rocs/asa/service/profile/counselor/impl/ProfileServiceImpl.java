@@ -6,11 +6,9 @@ import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.guidance.staff.request.profile.UpdateGuidanceStaffProfileRequest;
 import org.rocs.asa.domain.person.Person;
 import org.rocs.asa.domain.user.User;
-import org.rocs.asa.exception.domain.AlreadyExistException;
-import org.rocs.asa.exception.domain.EmailAlreadyExistException;
-import org.rocs.asa.exception.domain.EmployeeDoesNotExist;
-import org.rocs.asa.exception.domain.GuidanceStaffNotFoundException;
+import org.rocs.asa.exception.domain.*;
 import org.rocs.asa.repository.guidance.staff.GuidanceStaffRepository;
+import org.rocs.asa.repository.person.PersonRepository;
 import org.rocs.asa.repository.user.UserRepository;
 import org.rocs.asa.service.profile.counselor.ProfileService;
 import org.rocs.asa.service.user.UserService;
@@ -25,12 +23,14 @@ public class ProfileServiceImpl implements ProfileService {
     private GuidanceStaffRepository guidanceStaffRepository;
     private UserService userService;
     private UserRepository userRepository;
+    private PersonRepository personRepository;
 
     @Autowired
-    public ProfileServiceImpl(GuidanceStaffRepository guidanceStaffRepository, UserService userService , UserRepository userRepository) {
+    public ProfileServiceImpl(GuidanceStaffRepository guidanceStaffRepository, UserService userService , UserRepository userRepository, PersonRepository personRepository) {
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.personRepository = personRepository;
     }
 
     @Override
@@ -48,28 +48,30 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
-    public GuidanceStaff updateProfile(Long guidanceStaffId, UpdateGuidanceStaffProfileRequest request) {
+    public Person updateProfile(String userId, UpdateGuidanceStaffProfileRequest request) {
+        User user = userRepository.findByUserId(userId);
+        if(user == null) {
+            LOGGER.info("Failed to attempt update. User does not exist!");
+            throw new UserNotFoundException("User does not exist");
+        }
 
-        GuidanceStaff guidanceStaff = guidanceStaffRepository.findById(guidanceStaffId)
-                .orElseThrow(() -> new GuidanceStaffNotFoundException("Guidance Staff not found"));
-
-        Person person = guidanceStaff.getPerson();
-
+        Person validatePersonInformation = user.getPerson();
         if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
-            if (!request.getEmail().equals(person.getEmail())) {
+            if (!request.getEmail().equals(validatePersonInformation.getEmail())) {
                 User existing = userService.findUserByPersonEmail(request.getEmail());
                 if (existing != null) {
                     throw new EmailAlreadyExistException("Email Already Exist");
                 }
-                person.setEmail(request.getEmail());
-            }
-        }
-        if(request.getContactNumber() != null && !request.getContactNumber().trim().isEmpty()) {
-            if (!request.getContactNumber().equals(person.getContactNumber())) {
-                person.setContactNumber(request.getContactNumber());
+                validatePersonInformation.setEmail(request.getEmail());
             }
         }
 
-        return guidanceStaffRepository.save(guidanceStaff);
+        if (request.getContactNumber() != null && !request.getContactNumber().trim().isEmpty()) {
+            if (!request.getContactNumber().equals(validatePersonInformation.getContactNumber())) {
+                validatePersonInformation.setContactNumber(request.getContactNumber());
+            }
+        }
+
+        return personRepository.save(validatePersonInformation);
     }
 }
