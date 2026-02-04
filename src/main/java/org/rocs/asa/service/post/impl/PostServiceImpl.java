@@ -69,6 +69,14 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public Post createPost(CreatePostRequest request) {
+        // ADD THIS LOGGING AT THE START
+        LOGGER.info("📥 CREATE POST REQUEST:");
+        LOGGER.info("  - Category: {}", request.getCategoryName());
+        LOGGER.info("  - Content length: {}", request.getPostContent() != null ? request.getPostContent().length() : 0);
+        LOGGER.info("  - sectionNames: {}", request.getSectionNames());
+        LOGGER.info("  - sectionName (old): {}", request.getSectionName());
+        LOGGER.info("  - sectionId (old): {}", request.getSectionId());
+
         String content = (request.getPostContent() == null) ? "" : request.getPostContent().trim();
         if (content.isEmpty()) throw new IllegalArgumentException("Post content cannot be empty");
 
@@ -96,23 +104,23 @@ public class PostServiceImpl implements PostService {
             LOGGER.debug("Created new category: {}", capped64);
         }
 
-        // Determine which sections to target for notifications
         List<String> targetSectionNames = getTargetSectionNames(request);
 
-        // Create the post with section_id = null
         Post post = new Post();
         post.setEmployeeNumber(employeeNumber);
         post.setCategoryId(savedCategory.getCategoryId());
         post.setPostContent(content);
         post.setPostedDate(LocalDateTime.now());
-        post.setSectionId(null); // Always null - we use notifications for targeting
 
         Post saved = postRepository.save(post);
-        LOGGER.info("Post created id={} by employeeNumber={} with category '{}' targeting {} section(s)",
-                saved.getPostId(), employeeNumber, savedCategory.getCategoryName(),
-                targetSectionNames.isEmpty() ? "ALL" : targetSectionNames.size());
 
-        // Send notifications based on target sections
+        if (targetSectionNames.isEmpty()) {
+            LOGGER.warn("⚠️ POST {} - NO SECTIONS SPECIFIED - SENDING TO ALL STUDENTS", saved.getPostId());
+        } else {
+            LOGGER.info("✅ POST {} - Targeting {} section(s): {}",
+                    saved.getPostId(), targetSectionNames.size(), targetSectionNames);
+        }
+
         try {
             sendNotificationsForPost(saved, targetSectionNames, capped64);
         } catch (Exception e) {
@@ -157,7 +165,6 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        // Empty list = send to ALL sections
         LOGGER.info("No specific sections targeted - will send to ALL students");
         return Collections.emptyList();
     }
@@ -166,14 +173,12 @@ public class PostServiceImpl implements PostService {
         List<String> studentUserIds;
 
         if (targetSectionNames == null || targetSectionNames.isEmpty()) {
-            // Send to ALL students
             studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
                     .stream()
                     .map(User::getUserId)
                     .collect(Collectors.toList());
             LOGGER.info("Sending notification to ALL students ({} users)", studentUserIds.size());
         } else {
-            // Send to students in specific sections only
             Set<String> uniqueUserIds = new HashSet<>();
 
             for (String sectionName : targetSectionNames) {
@@ -191,6 +196,7 @@ public class PostServiceImpl implements PostService {
         }
 
         if (!studentUserIds.isEmpty()) {
+            LOGGER.info("POST {} - Notifying user IDs: {}", post.getPostId(), studentUserIds);
             notificationService.sendNotificationToAllStudent(
                     studentUserIds,
                     "New Post from Guidance",
@@ -213,7 +219,6 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public List<Map<String, Object>> getAllPosts(int limit) {
-        // For guidance/admin view - show ALL posts
         String sql =
                 "SELECT * FROM ( " +
                         "  SELECT t.* FROM ( " +
@@ -359,9 +364,6 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public List<Map<String, Object>> getPostsForStudent(Long studentId, int limit) {
-        // CRITICAL FIX: Students see posts based on WHO RECEIVED THE NOTIFICATION
-        // Not based on post.section_id (which is always null)
-
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new EntityNotFoundException("Student not found: " + studentId));
 
@@ -372,8 +374,18 @@ public class PostServiceImpl implements PostService {
         }
 
         String userId = user.getUserId();
+        String sectionName = student.getSection() != null ? student.getSection().getSectionName() : null;
 
-        // Get posts that this student was notified about (POST_UPDATE notifications)
+        String loginIdSql = "SELECT login_id FROM tbl_login WHERE user_id = ?";
+        String loginId;
+        try {
+            loginId = jdbcTemplate.queryForObject(loginIdSql, String.class, userId);
+        } catch (Exception e) {
+            LOGGER.error("Could not find login_id for user_id: {}", userId);
+            return Collections.emptyList();
+        }
+
+        // IMPROVED: More specific notification matching using message content
         String sql = "SELECT DISTINCT p.post_id, p.post_content, p.posted_date, c.category_name, " +
                 "       s.section_name, s.organization, " +
                 "       TRIM(COALESCE(per.first_name, '') || ' ' || COALESCE(per.last_name, '')) AS posted_by " +
@@ -382,20 +394,55 @@ public class PostServiceImpl implements PostService {
                 "LEFT JOIN tbl_section s ON p.section_id = s.section_id " +
                 "LEFT JOIN tbl_guidance_staff gs ON p.employee_number = gs.employee_number " +
                 "LEFT JOIN tbl_person per ON gs.person_id = per.id " +
+                "INNER JOIN tbl_notification n ON n.action_type = 'POST_UPDATE' " +
+                "   AND n.user_id = ? " +
+                "   AND ABS(EXTRACT(EPOCH FROM (p.posted_date - n.created_at))) < 10 " + // Within 10 seconds
                 "WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
-                "  AND EXISTS ( " +
-                "    SELECT 1 FROM tbl_notification n " +
-                "    WHERE n.user_id = (SELECT login_id FROM tbl_login WHERE user_id = ?) " +
-                "    AND n.action_type = 'POST_UPDATE' " +
-                "    AND n.created_at >= p.posted_date " + // Notification should be after or same time as post
-                "    AND n.created_at <= p.posted_date + INTERVAL '5 minutes' " + // Within 5 minutes of post creation
-                "  ) " +
                 "ORDER BY p.posted_date DESC " +
                 "LIMIT ?";
 
-        List<Map<String, Object>> posts = jdbcTemplate.queryForList(sql, userId, limit);
+        List<Map<String, Object>> posts = jdbcTemplate.queryForList(sql, loginId, limit);
 
-        LOGGER.info("Found {} posts for student {} (userId: {})", posts.size(), studentId, userId);
+        LOGGER.info("Found {} posts for student {} (userId: {}, loginId: {}, section: {})",
+                posts.size(), studentId, userId, loginId, sectionName);
+
+        return posts;
+    }
+
+    @Override
+    public List<Map<String, Object>> getPostsBySection(String sectionName, int limit) {
+        if (sectionName == null || sectionName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Section name cannot be empty");
+        }
+
+        String trimmedSection = sectionName.trim();
+
+        LOGGER.info("Fetching posts for section: {}", trimmedSection);
+
+        String sql = "SELECT DISTINCT p.post_id, p.post_content, p.posted_date, c.category_name, " +
+                "       TRIM(COALESCE(per.first_name, '') || ' ' || COALESCE(per.last_name, '')) AS posted_by, " +
+                "       ? AS target_section, " +
+                "       COUNT(DISTINCT n.user_id) AS student_count " +
+                "FROM tbl_posts p " +
+                "JOIN tbl_category c ON p.category_id = c.category_id " +
+                "LEFT JOIN tbl_guidance_staff gs ON p.employee_number = gs.employee_number " +
+                "LEFT JOIN tbl_person per ON gs.person_id = per.id " +
+                "INNER JOIN tbl_notification n ON n.action_type = 'POST_UPDATE' " +
+                "   AND n.created_at BETWEEN p.posted_date AND p.posted_date + INTERVAL '5 minutes' " +
+                "INNER JOIN tbl_login l ON n.user_id = l.login_id " +
+                "INNER JOIN tbl_user u ON l.user_id = u.user_id " +
+                "INNER JOIN tbl_student st ON u.user_id = st.user_id " +
+                "INNER JOIN tbl_section sec ON st.section_id = sec.section_id " +
+                "WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
+                "  AND sec.section_name = ? " +
+                "GROUP BY p.post_id, p.post_content, p.posted_date, c.category_name, " +
+                "         per.first_name, per.last_name " +
+                "ORDER BY p.posted_date DESC " +
+                "LIMIT ?";
+
+        List<Map<String, Object>> posts = jdbcTemplate.queryForList(sql, trimmedSection, trimmedSection, limit);
+
+        LOGGER.info("Found {} posts targeted to section: {}", posts.size(), trimmedSection);
 
         return posts;
     }
