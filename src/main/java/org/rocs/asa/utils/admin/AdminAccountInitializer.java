@@ -78,11 +78,11 @@ public class AdminAccountInitializer implements CommandLineRunner {
             adminPerson.setFirstName("System");
             adminPerson.setMiddleName("Default");
             adminPerson.setLastName("Administrator");
-            adminPerson.setBirthdate(new Date());  // Age will be auto-calculated by @PrePersist
-            adminPerson.setGender("N/A");  // ADDED THIS - was missing!
+            adminPerson.setBirthdate(new Date());
+            adminPerson.setGender("N/A");
             adminPerson.setEmail(defaultAdminEmail);
             adminPerson.setAddress("System");
-            adminPerson.setContactNumber("09999999999");
+            adminPerson.setContactNumber("N/A");
 
             User adminUser = new User();
             adminUser.setPerson(adminPerson);

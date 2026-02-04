@@ -200,11 +200,44 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             savedSection = existingSection;
             LOGGER.info("Reusing existing section: {} with cluster head: {}", sectionName, clusterHead);
         } else {
-            section.setOrganization(determineOrganization(sectionName));
-            section.setClusterName(determineClusterName(section.getOrganization(), sectionName));
-            section.setCourse(determineCourse(sectionName));
+            // Use frontend-provided values OR auto-generate if not provided
+            String organization = (section.getOrganization() != null && !section.getOrganization().trim().isEmpty())
+                    ? section.getOrganization().trim()
+                    : determineOrganization(sectionName);
+
+            String clusterName = (section.getClusterName() != null && !section.getClusterName().trim().isEmpty())
+                    ? section.getClusterName().trim()
+                    : determineClusterName(sectionName);
+
+            String course = (section.getCourse() != null && !section.getCourse().trim().isEmpty())
+                    ? section.getCourse().trim()
+                    : determineCourse(sectionName);
+
+            // Validate that frontend values match backend auto-generation (optional security check)
+            String expectedOrg = determineOrganization(sectionName);
+            String expectedCluster = determineClusterName(sectionName);
+            String expectedCourse = determineCourse(sectionName);
+
+            if (!organization.equals(expectedOrg)) {
+                LOGGER.warn("Organization mismatch - Frontend: {}, Expected: {} for section: {}",
+                        organization, expectedOrg, sectionName);
+            }
+            if (!clusterName.equals(expectedCluster)) {
+                LOGGER.warn("Cluster mismatch - Frontend: {}, Expected: {} for section: {}",
+                        clusterName, expectedCluster, sectionName);
+            }
+            if (!course.equals(expectedCourse)) {
+                LOGGER.warn("Course mismatch - Frontend: {}, Expected: {} for section: {}",
+                        course, expectedCourse, sectionName);
+            }
+
+            section.setOrganization(organization);
+            section.setClusterName(clusterName);
+            section.setCourse(course);
             savedSection = sectionRepository.save(section);
-            LOGGER.info("Created new section: {} with cluster head: {}", sectionName, clusterHead);
+
+            LOGGER.info("Created new section: {} | Organization: {} | Cluster: {} | Course: {} | Cluster Head: {}",
+                    sectionName, organization, clusterName, course, clusterHead);
         }
 
         Student student = new Student();
@@ -350,26 +383,70 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             throw new InvalidPasswordException("Password must be at least 6 characters");
     }
 
+    /**
+     * Determines the organization based on the section name prefix.
+     * This serves as both fallback and validation for frontend-provided values.
+     *
+     * @param sectionName The section name (e.g., "BSA-101", "IT-3A")
+     * @return The organization name
+     */
     private String determineOrganization(String sectionName) {
-        if (sectionName == null) return "ROCS";
-        String prefix = sectionName.split("[-–]")[0].toUpperCase();
-        switch (prefix) {
-            case "ECE", "BSECE" -> { return "ECE"; }
-            case "HM", "BSHM" -> { return "HM"; }
-            case "TM", "BSTM" -> { return "TM"; }
-            case "BSA" -> { return "BSA"; }
-            default -> { return "ROCS"; }
+        if (sectionName == null || sectionName.trim().isEmpty()) {
+            return "ROCS";
         }
+
+        String prefix = sectionName.split("[-–\\s]")[0].trim().toUpperCase();
+
+        return switch (prefix) {
+            case "BSA" -> "JPIA";
+            case "BA" -> "MERCX";
+            case "HM", "BSHM" -> "THM SOCIETY";
+            case "TM", "BSTM" -> "THM SOCIETY";
+            case "EDUC" -> "YEC";
+            case "BIT" -> "RCAITS";
+            case "IT", "BSIT" -> "ROCS";
+            case "ECE", "BSECE" -> "ELITES";
+            default -> "ROCS";
+        };
     }
 
-    private String determineClusterName(String organization, String sectionName) {
-        if (organization == null) return "CETE";
-        return organization.equals("ROCS") ? "CETE" : organization;
+    /**
+     * Determines the cluster name based on the section name.
+     * This serves as both fallback and validation for frontend-provided values.
+     *
+     * @param sectionName The section name
+     * @return The cluster name
+     */
+    private String determineClusterName(String sectionName) {
+        if (sectionName == null || sectionName.trim().isEmpty()) {
+            return "CETE";
+        }
+
+        String prefix = sectionName.split("[-–\\s]")[0].trim().toUpperCase();
+
+        return switch (prefix) {
+            case "BSA", "BA", "HM", "BSHM", "TM", "BSTM" -> "CBAM";
+            case "EDUC", "BIT", "IT", "BSIT", "ECE", "BSECE" -> "CETE";
+            default -> "CETE";
+        };
     }
 
+    /**
+     * Determines the course based on the section name.
+     * This serves as both fallback and validation for frontend-provided values.
+     *
+     * Example: "BSA-101" -> "BSA", "IT-3A" -> "BSIT", "HM-201" -> "BSHM"
+     *
+     * @param sectionName The section name
+     * @return The course code
+     */
     private String determineCourse(String sectionName) {
-        if (sectionName == null) return "UNKNOWN";
-        String prefix = sectionName.split("[-–]")[0].toUpperCase();
+        if (sectionName == null || sectionName.trim().isEmpty()) {
+            return "UNKNOWN";
+        }
+
+        String prefix = sectionName.split("[-–\\s]")[0].trim().toUpperCase();
+
         return switch (prefix) {
             case "IT" -> "BSIT";
             case "CS" -> "BSCS";
@@ -377,7 +454,13 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             case "HM" -> "BSHM";
             case "TM" -> "BSTM";
             case "BSA" -> "BSA";
-            default -> "BS" + prefix;
+            case "BA" -> "BA";
+            case "EDUC" -> "EDUC";
+            case "BIT" -> "BIT";
+            // If already prefixed with BS, use as is
+            case "BSIT", "BSCS", "BSECE", "BSHM", "BSTM" -> prefix;
+            // Default: prepend BS if not already there
+            default -> prefix.startsWith("BS") ? prefix : "BS" + prefix;
         };
     }
 }
