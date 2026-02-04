@@ -1,12 +1,10 @@
-# ==============================
-# Common application settings
-# ==============================
-application:
-  name: appointment-scheduling-api
-  frontend-url: ${FRONTEND_URL:http://localhost:5173}
-  base-url: ${APP_BASE_URL:http://localhost:8080}
-  endpoints:
-    password-reset-verify: "/user/password-reset/verify"
+spring:
+  application:
+    name: appointment-scheduling-api
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
+    base-url: ${APP_BASE_URL:http://localhost:8080}
+    endpoints:
+      password-reset-verify: "/user/password-reset/verify"
   profiles:
     active: ${SPRING_PROFILE:dev}
 
@@ -45,9 +43,6 @@ appointment:
 
 ---
 
-# ==============================
-# Dev profile
-# ==============================
 spring:
   config:
     activate:
@@ -67,10 +62,6 @@ spring:
         format_sql: true
 
 ---
-
-# ==============================
-# Prod profile (Supabase Pooler)
-# ==============================
 spring:
   config:
     activate:
@@ -94,18 +85,6 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
-        boot:
-          allow_jdbc_metadata_access: true
         jdbc:
           lob:
             non_contextual_creation: true
-
-server:
-  address: 0.0.0.0
-  port: ${PORT:8080}
-
-firebase:
-  service-account-file: /etc/secrets/FIREBASE_CONFIG
-
-admin:
-  auto-create: true
