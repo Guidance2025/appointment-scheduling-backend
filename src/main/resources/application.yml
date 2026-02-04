@@ -67,7 +67,6 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    # REMOVED preferQueryMode=simple - Transaction pooler doesn't support it
     url: jdbc:postgresql://${DB_HOST:aws-1-ap-southeast-1.pooler.supabase.com}:${DB_PORT:6543}/${DB_NAME:postgres}?sslmode=require
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
@@ -89,4 +88,10 @@ spring:
         jdbc:
           lob:
             non_contextual_creation: true
+admin:
+    auto-create: true
+    default:
+      username: ${ADMIN_USERNAME}
+      password: ${ADMIN_PASSWORD}
+      email: ${ADMIN_EMAIL}
 
