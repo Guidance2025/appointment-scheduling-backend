@@ -86,9 +86,18 @@ public class FcmConfiguration {
                 LOGGER.info("Loading Firebase credentials from file: {}", firebaseConfig);
                 credentialsStream = new FileInputStream(configFile);
             } else {
-                // Assume it's JSON content as string
-                LOGGER.info("Loading Firebase credentials from JSON string (length: {})", firebaseConfig.length());
-                credentialsStream = new ByteArrayInputStream(firebaseConfig.getBytes(StandardCharsets.UTF_8));
+                // Try to decode from Base64 first
+                try {
+                    LOGGER.info("Attempting to decode Base64 Firebase credentials (length: {})", firebaseConfig.length());
+                    byte[] decodedBytes = java.util.Base64.getDecoder().decode(firebaseConfig);
+                    String jsonString = new String(decodedBytes, StandardCharsets.UTF_8);
+                    LOGGER.info("Decoded JSON length: {}", jsonString.length());
+                    credentialsStream = new ByteArrayInputStream(decodedBytes);
+                } catch (IllegalArgumentException e) {
+                    // Not Base64, assume it's JSON content as string
+                    LOGGER.info("Not Base64, loading Firebase credentials from JSON string (length: {})", firebaseConfig.length());
+                    credentialsStream = new ByteArrayInputStream(firebaseConfig.getBytes(StandardCharsets.UTF_8));
+                }
             }
         } else {
             // Fall back to classpath
