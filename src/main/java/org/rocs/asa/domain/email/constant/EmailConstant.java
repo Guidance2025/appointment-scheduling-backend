@@ -9,7 +9,7 @@ public class EmailConstant {
      * Simple Mail Transfer Protocol ensure the email communication
      * that is encrypted from the sender to the email server.
      */
-    public static final String SIMPLE_MAIL_TRANSFER_PROTOCOL = "smtps";
+    public static final String SIMPLE_MAIL_TRANSFER_PROTOCOL = "smtp";
 
     /**
      * Email address used as the sender's address.
@@ -64,7 +64,7 @@ public class EmailConstant {
     /**
      * Default port for Simple Mail Transfer Protocol.
      */
-    public static final int DEFAULT_PORT = 465;
+    public static final int DEFAULT_PORT = 587;
 
     /**
      * Enabling StartTLS in Simple Mail Transfer Protocol.
