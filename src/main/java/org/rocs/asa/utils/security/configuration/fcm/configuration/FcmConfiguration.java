@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +35,7 @@ public class FcmConfiguration {
                 LOGGER.info("==============================================");
                 LOGGER.info("Initializing Firebase...");
                 LOGGER.info("Project ID from env: {}", projectId);
-                LOGGER.info("Config length: {}", firebaseConfig != null ? firebaseConfig.length() : 0);
+                LOGGER.info("Config path/content: {}", firebaseConfig);
                 LOGGER.info("==============================================");
 
                 GoogleCredentials credentials = loadCredentials();
@@ -56,7 +58,7 @@ public class FcmConfiguration {
                 LOGGER.info("==============================================");
 
             } else {
-                LOGGER.info("Firebase already initialized. Number of apps: {}", FirebaseApp.getApps().size());
+                LOGGER.info("Firebase already initialized");
             }
         } catch (IOException e) {
             LOGGER.error("==============================================");
@@ -77,19 +79,27 @@ public class FcmConfiguration {
         InputStream credentialsStream;
 
         if (firebaseConfig != null && !firebaseConfig.isEmpty()) {
-            LOGGER.info("Loading Firebase credentials from environment variable");
-            LOGGER.info("Config starts with: {}", firebaseConfig.substring(0, Math.min(50, firebaseConfig.length())));
-            credentialsStream = new ByteArrayInputStream(firebaseConfig.getBytes(StandardCharsets.UTF_8));
+            File configFile = new File(firebaseConfig);
+
+            // Check if it's a file path
+            if (configFile.exists() && configFile.isFile()) {
+                LOGGER.info("Loading Firebase credentials from file: {}", firebaseConfig);
+                credentialsStream = new FileInputStream(configFile);
+            } else {
+                // Assume it's JSON content as string
+                LOGGER.info("Loading Firebase credentials from JSON string (length: {})", firebaseConfig.length());
+                credentialsStream = new ByteArrayInputStream(firebaseConfig.getBytes(StandardCharsets.UTF_8));
+            }
         } else {
+            // Fall back to classpath
             LOGGER.info("Loading Firebase credentials from classpath");
             ClassPathResource resource = new ClassPathResource("firebase-service-account.json");
 
             if (!resource.exists()) {
-                LOGGER.error("firebase-service-account.json not found and FIREBASE_CONFIG not set");
+                LOGGER.error("No Firebase credentials found!");
                 throw new RuntimeException("Firebase credentials not found");
             }
 
-            LOGGER.info("Loading Firebase service account from: {}", resource.getFilename());
             credentialsStream = resource.getInputStream();
         }
 
