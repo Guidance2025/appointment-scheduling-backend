@@ -77,6 +77,15 @@ public class PostController {
         List<Map<String, Object>> posts = postService.getPostsForStudent(studentId, limit);
         return ResponseEntity.ok(posts);
     }
+
+    @GetMapping("/posts/section/{sectionName}")
+    public ResponseEntity<List<Map<String, Object>>> getPostsBySection(
+            @PathVariable String sectionName,
+            @RequestParam(defaultValue = "20") int limit) {
+        List<Map<String, Object>> posts = postService.getPostsBySection(sectionName, limit);
+        return ResponseEntity.ok(posts);
+    }
+
     @GetMapping("/posts/students/section")
     public ResponseEntity<List<String>> getStudentsSection() {
         List<String> sections = postService.findStudentsSection();
