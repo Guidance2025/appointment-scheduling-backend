@@ -103,7 +103,6 @@ public class FcmConfiguration {
                         LOGGER.info("Decoded content length: {} bytes", jsonString.length());
                         LOGGER.info("Content starts with: {}", jsonString.substring(0, Math.min(100, jsonString.length())));
 
-                        // Validate JSON structure
                         if (!jsonString.startsWith("{")) {
                             throw new RuntimeException("Decoded content is not valid JSON (doesn't start with '{')");
                         }
@@ -121,7 +120,7 @@ public class FcmConfiguration {
                         if (!trimmed.startsWith("{")) {
                             throw new RuntimeException("Config is not valid JSON (doesn't start with '{')");
                         }
-
+                        
                         credentialsStream = new ByteArrayInputStream(trimmed.getBytes(StandardCharsets.UTF_8));
                     }
                 }

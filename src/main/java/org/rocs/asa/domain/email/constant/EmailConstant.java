@@ -64,7 +64,7 @@ public class EmailConstant {
     /**
      * Default port for Simple Mail Transfer Protocol.
      */
-    public static final int DEFAULT_PORT = 587;
+    public static final int DEFAULT_PORT = 465;
 
     /**
      * Enabling StartTLS in Simple Mail Transfer Protocol.

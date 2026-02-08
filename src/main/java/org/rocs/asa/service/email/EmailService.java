@@ -145,6 +145,7 @@ public class EmailService {
         properties.put(SMTP_AUTH, true);
         properties.put(SMTP_PORT, DEFAULT_PORT);
         properties.put(SMTP_STARTTLS_ENABLE, true);
+        properties.put("mail.smtp.ssl.enable", "true");
         properties.put(SMTP_STARTTLS_REQUIRED, true);
         return Session.getInstance(properties, null);
     }
