@@ -1,8 +1,6 @@
 spring:
   application:
     name: appointment-scheduling-api
-    frontend-url: ${FRONTEND_URL:http://localhost:5173}
-    base-url: ${APP_BASE_URL:http://localhost:8080}
     endpoints:
       password-reset-verify: "/user/password-reset/verify"
   profiles:
@@ -42,7 +40,6 @@ appointment:
   max-pending-per-student: 1
 
 ---
-
 spring:
   config:
     activate:
@@ -77,7 +74,6 @@ spring:
       minimum-idle: 2
       idle-timeout: 300000
       max-lifetime: 600000
-
   jpa:
     show-sql: false
     hibernate:

@@ -122,6 +122,10 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<HttpResponse> studentNotFound(StudentNotFoundException exception) {
         return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
     }
+    @ExceptionHandler(EmptyFieldException.class)
+    public ResponseEntity<HttpResponse> studentNotFound(EmptyFieldException exception) {
+        return createHttpResponse(HttpStatus.NOT_FOUND, exception.getMessage());
+    }
 
     @ExceptionHandler(OptimisticLockException.class)
     public ResponseEntity<String> handleOptimisticLock() {
@@ -148,8 +152,6 @@ public class ExceptionHandling implements ErrorController {
     public ResponseEntity<?> badRequest(BadRequestException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
     }
-
-    // ========== NEW EXCEPTION HANDLERS FOR REGISTRATION ==========
 
     /**
      * Handles PersonNotFoundException thrown during registration
