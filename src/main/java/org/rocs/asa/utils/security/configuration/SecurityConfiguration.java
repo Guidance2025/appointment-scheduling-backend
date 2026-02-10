@@ -5,6 +5,7 @@ import org.rocs.asa.utils.security.jwt.filter.authentication.forbidden.Authentic
 import org.rocs.asa.utils.security.jwt.filter.authorization.JwtAuthorizationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -39,6 +40,9 @@ public  class SecurityConfiguration {
     private final UserDetailsService userDetailsService;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final AuthenticationConfiguration authenticationConfiguration;
+
+    @Value("${app.frontend-url}")
+    private String frontEndUrl;
     /**
      * Creates a new constructor for {@code SecurityConfiguration}
      *
@@ -91,9 +95,7 @@ public  class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of(
-                "https://gabay-appointment-schedulingrogedu.vercel.app"
-        ));
+        corsConfiguration.setAllowedOrigins(List.of(frontEndUrl));
         corsConfiguration.setAllowedMethods(Arrays.asList("GET","POST","PATCH","PUT","DELETE","OPTIONS"));
         corsConfiguration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
         corsConfiguration.setExposedHeaders(List.of("Jwt-Token"));

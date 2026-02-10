@@ -54,10 +54,10 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final PasswordResetTokenService passwordResetTokenService;
     private final SectionRepository sectionRepository;
 
-    @Value("${spring.application.frontend-url}")
+    @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    @Value("${spring.application.endpoints.password-reset-verify}")
+    @Value("${app.endpoints.password-reset-verify}")
     private String verifyEndpoint;
 
     @Autowired
@@ -457,9 +457,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
             case "BA" -> "BA";
             case "EDUC" -> "EDUC";
             case "BIT" -> "BIT";
-            // If already prefixed with BS, use as is
             case "BSIT", "BSCS", "BSECE", "BSHM", "BSTM" -> prefix;
-            // Default: prepend BS if not already there
             default -> prefix.startsWith("BS") ? prefix : "BS" + prefix;
         };
     }
