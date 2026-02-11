@@ -17,13 +17,13 @@ public class EmailService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailService.class);
 
-    @Value("${brevo.api.key}")
+    @Value("${brevo.api-key}")
     private String brevoApiKey;
 
-    @Value("${brevo.from.email}")
+    @Value("${brevo.from-email}")
     private String fromEmail;
 
-    @Value("${brevo.from.name}")
+    @Value("${brevo.from-name}")
     private String fromName;
 
     public void sendPasswordResetVerificationEmail(String email, String verifyUrl) throws Exception {
