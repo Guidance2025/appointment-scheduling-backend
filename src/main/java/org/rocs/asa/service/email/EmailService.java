@@ -1,5 +1,6 @@
 package org.rocs.asa.service.email;
 
+import org.springframework.beans.factory.annotation.Value;
 import sendinblue.ApiClient;
 import sendinblue.Configuration;
 import sendinblue.auth.ApiKeyAuth;
@@ -7,7 +8,6 @@ import sibApi.TransactionalEmailsApi;
 import sibModel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -17,11 +17,14 @@ public class EmailService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EmailService.class);
 
-    private String brevoApiKey = "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";
+    @Value("${brevo.api.key}")
+    private String brevoApiKey;
 
-    private String fromEmail = "neonael.angcaya.nazareno@gmail.com";
+    @Value("${brevo.from.email}")
+    private String fromEmail;
 
-    private String fromName = "Gabay System";
+    @Value("${brevo.from.name}")
+    private String fromName;
 
     public void sendPasswordResetVerificationEmail(String email, String verifyUrl) throws Exception {
         String subject = "Password Reset Verification - GABAY";
