@@ -3,7 +3,9 @@ package org.rocs.asa.controller.exit.interview;
 import org.rocs.asa.domain.exit.interview.ExitInterview;
 import org.rocs.asa.domain.exit.request.ExitInterviewRequest;
 import org.rocs.asa.domain.questions.Questions;
+import org.rocs.asa.domain.student.information.response.StudentDetailsResponse;
 import org.rocs.asa.service.exit.interview.ExitInterviewService;
+import org.rocs.asa.service.student.inforamation.StudentInformationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,6 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/exit-interview")
+@CrossOrigin("*")
 public class ExitInterviewController {
     private ExitInterviewService exitInterviewService;
 
@@ -22,10 +25,45 @@ public class ExitInterviewController {
     }
 
     @PostMapping("/create/{id}")
-    public ResponseEntity<List<Questions>> createExitInterviewQuestions(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<List<Questions>> createExitInterviewQuestions(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+
         List<String> questionTexts = (List<String>) request.get("questionTexts");
-        List<Questions> questions = exitInterviewService.createMultipleExitInterviewQuestions(id, questionTexts);
+        List<Long> selectedStudentIds = null;
+
+        // Check if selectedStudentIds is present and not empty
+        if (request.containsKey("selectedStudentIds") && request.get("selectedStudentIds") != null) {
+            Object idsObj = request.get("selectedStudentIds");
+            if (idsObj instanceof List) {
+                List<?> idsList = (List<?>) idsObj;
+                if (!idsList.isEmpty()) {
+                    selectedStudentIds = idsList.stream()
+                            .map(obj -> {
+                                if (obj instanceof Number) {
+                                    return ((Number) obj).longValue();
+                                }
+                                return null;
+                            })
+                            .filter(item -> item != null)
+                            .toList();
+                }
+            }
+        }
+
+        List<Questions> questions = exitInterviewService.createMultipleExitInterviewQuestions(
+                id,
+                questionTexts,
+                selectedStudentIds
+        );
         return ResponseEntity.ok(questions);
+    }
+
+
+    @GetMapping("/students/all")
+    public ResponseEntity<List<StudentDetailsResponse>> getAllStudents() {
+        List<StudentDetailsResponse> students = exitInterviewService.getAllStudentsForSelection();  // Updated call
+        return ResponseEntity.ok(students);
     }
 
     @GetMapping("/retrieve-questions/{id}")
@@ -59,7 +97,10 @@ public class ExitInterviewController {
     }
 
     @PutMapping("/questions/{questionId}")
-    public ResponseEntity<Questions> updateQuestion(@PathVariable Long questionId, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<Questions> updateQuestion(
+            @PathVariable Long questionId,
+            @RequestBody Map<String, Object> request) {
+
         String questionText = (String) request.get("questionText");
         if (questionText == null) {
             return ResponseEntity.badRequest().build();

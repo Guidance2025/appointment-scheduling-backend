@@ -6,6 +6,7 @@ import org.rocs.asa.domain.exit.request.ExitInterviewRequest;
 import org.rocs.asa.domain.guidance.staff.GuidanceStaff;
 import org.rocs.asa.domain.questions.Questions;
 import org.rocs.asa.domain.student.Student;
+import org.rocs.asa.domain.student.information.response.StudentDetailsResponse;
 import org.rocs.asa.domain.user.User;
 import org.rocs.asa.exception.domain.EmptyFieldException;
 import org.rocs.asa.exception.domain.GuidanceStaffNotFoundException;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,7 +60,8 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
                                     NotificationService notificationService,
                                     UserRepository userRepository,
                                     DeviceTokenRepository deviceTokenRepository,
-                                    CategoryRepository categoryRepository, GuidanceService guidanceService) {
+                                    CategoryRepository categoryRepository,
+                                    GuidanceService guidanceService) {
         this.guidanceStaffRepository = guidanceStaffRepository;
         this.questionsRepository = questionsRepository;
         this.exitInterviewRepository = exitInterviewRepository;
@@ -73,7 +76,7 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
 
     @Override
     @Transactional
-    public List<Questions> createMultipleExitInterviewQuestions(Long guidanceStaffId, List<String> questionTexts) {
+    public List<Questions> createMultipleExitInterviewQuestions(Long guidanceStaffId, List<String> questionTexts, List<Long> selectedStudentIds) {
         GuidanceStaff guidanceStaff = guidanceStaffRepository.findById(guidanceStaffId)
                 .orElseThrow(() -> new GuidanceStaffNotFoundException("Guidance Staff not found with id: " + guidanceStaffId));
 
@@ -103,29 +106,48 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
                 })
                 .toList();
 
-        List<String> studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
-                .stream()
-                .map(User::getUserId)
-                .toList();
+        List<Questions> savedQuestions = questionsRepository.saveAll(questions);
 
-        notificationService.sendNotificationToAllStudent(
-                studentUserIds,
-                "New Exit Interview Questions",
-                "Posted new exit interview questions.",
-                "EXIT INTERVIEW UPDATE"
-        );
+        List<String> studentUserIds;
+        if (selectedStudentIds != null && !selectedStudentIds.isEmpty()) {
+            List<Student> targetStudents = studentRepository.findAllById(selectedStudentIds);
+            studentUserIds = targetStudents.stream()
+                    .map(s -> s.getUser().getUserId())
+                    .collect(Collectors.toList());
+            LOGGER.info("Created {} questions for {} selected students", savedQuestions.size(), targetStudents.size());
+        } else {
+            studentUserIds = userRepository.findAllByRole(Role.STUDENT_ROLE.name())
+                    .stream()
+                    .map(User::getUserId)
+                    .toList();
+            LOGGER.info("Created {} questions for all students", savedQuestions.size());
+        }
 
-        return questionsRepository.saveAll(questions);
+        for (Questions q : savedQuestions) {
+            String actionType = "EXIT_INTERVIEW_NEW_QUESTION_" + q.getId();
+            if (!studentUserIds.isEmpty()) {
+                notificationService.sendNotificationToAllStudent(
+                        studentUserIds,
+                        "New Exit Interview Questions",
+                        "Posted new exit interview questions.",
+                        actionType
+                );
+            }
+        }
+
+        return savedQuestions;
     }
 
     @Override
     public List<Questions> findByGuidanceStaffId(Long guidanceStaffId) {
         return questionsRepository.findByGuidanceStaffId(guidanceStaffId);
     }
+
     @Override
     public List<Questions> findAllQuestions() {
         return questionsRepository.findByCategoryName("Exit Interview");
     }
+
     @Override
     public ExitInterview studentResponse(ExitInterviewRequest request) {
         if (request.getQuestionId() == null) {
@@ -139,7 +161,10 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
         Questions question = questionsRepository.findById(request.getQuestionId())
                 .orElseThrow(() -> new QuestionDoesNotExistException("Question does not exist"));
 
-        boolean checkAnsweredQuestion = exitInterviewRepository.existsByStudentIdAndQuestionId(authenticatedStudent.getId(), request.getQuestionId());
+        boolean checkAnsweredQuestion = exitInterviewRepository.existsByStudentIdAndQuestionId(
+                authenticatedStudent.getId(),
+                request.getQuestionId()
+        );
 
         if (checkAnsweredQuestion) {
             throw new QuestionDoesNotExistException("You have already answered this question");
@@ -163,7 +188,15 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
     @Override
     public List<Questions> getUnansweredQuestionsForAuthenticatedStudent() {
         Student student = studentService.findByAuthenticatedStudent();
-        return questionsRepository.findUnansweredExitInterviewByStudentId(student.getId(), "Exit Interview");
+        String userId = student.getUser().getUserId();
+
+        List<Questions> unansweredQuestions = questionsRepository.findUnansweredExitInterviewByStudentId(
+                student.getId(),
+                "Exit Interview",
+                userId
+        );
+
+        return unansweredQuestions;
     }
 
     @Override
@@ -185,5 +218,22 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
         question.setQuestionText(questionText.trim());
         LOGGER.info("Question updated successfully for ID: {}", questionId);
         return questionsRepository.save(question);
+    }
+    @Override
+    public List<StudentDetailsResponse> getAllStudentsForSelection() {
+        List<Student> students = studentRepository.findStudentsWithValidData();  // Changed: Use custom query
+        LOGGER.info("Fetched {} valid students from DB", students.size());
+
+        return students.stream()
+                .map(s -> {
+                    StudentDetailsResponse dto = new StudentDetailsResponse();
+                    dto.setId(s.getId());
+                    dto.setStudentNumber(s.getStudentNumber() != null ? s.getStudentNumber() : "N/A");
+                    dto.setFirstName(s.getPerson().getFirstName() != null ? s.getPerson().getFirstName() : "N/A");
+                    dto.setLastName(s.getPerson().getLastName() != null ? s.getPerson().getLastName() : "N/A");
+                    dto.setSectionName(s.getSection().getSectionName() != null ? s.getSection().getSectionName() : "N/A");
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 }
