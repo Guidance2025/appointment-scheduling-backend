@@ -12,8 +12,8 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName ORDER BY q.dateCreated DESC")
     List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
 
-    @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT ei.question.id FROM ExitInterview ei WHERE ei.student.id = :studentId)")
-    List<Questions> findUnansweredExitInterviewByStudentId(@Param("studentId") Long studentId, @Param("categoryName") String categoryName);
+    @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT ei.question.id FROM ExitInterview ei WHERE ei.student.id = :studentId) AND (q.id IN (SELECT CAST(SUBSTRING(n.actionType, LENGTH('EXIT_INTERVIEW_NEW_QUESTION_') + 1, LENGTH(n.actionType) - LENGTH('EXIT_INTERVIEW_NEW_QUESTION_')) AS LONG) FROM Notifications n WHERE n.user.userId = :userId AND n.actionType LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%') OR NOT EXISTS (SELECT 1 FROM Notifications n2 WHERE n2.user.userId = :userId AND n2.actionType LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'))")
+    List<Questions> findUnansweredExitInterviewByStudentId(@Param("studentId") Long studentId, @Param("categoryName") String categoryName, @Param("userId") String userId);
 
     @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT sa.question.id FROM SelfAssessment sa WHERE sa.student.id = :studentId)")
     List<Questions> findUnansweredSelfAssessmentByStudentId(@Param("studentId") Long studentId, @Param("categoryName") String categoryName);
