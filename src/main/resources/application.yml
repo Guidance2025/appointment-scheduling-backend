@@ -17,6 +17,11 @@ firebase:
   project-id: ${FIREBASE_PROJECT_ID:}
   service-account-file: ${FIREBASE_CONFIG:}
 
+brevo:
+  api-key: ${BREVO_API_KEY:}
+  from-email: ${BREVO_FROM_EMAIL:}
+  from-name: ${BREVO_FROM_NAME:Gabay System}
+
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
   frontend-url: ${FRONTEND_URL:http://localhost:5173}

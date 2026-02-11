@@ -134,7 +134,7 @@ public class AccountsServiceImpl implements AccountsService {
     }
     @Override
     @Transactional
-    public void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) throws MessagingException {
+    public void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) throws Exception {
 
         LOGGER.info("Updating credentials for student: {}", studentNumber);
 
