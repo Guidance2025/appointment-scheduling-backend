@@ -58,7 +58,7 @@ public class AdminController {
      * @return ResponseEntity containing the user object, and Http Status
      */
     @PostMapping("/register")
-    public ResponseEntity<Registration> register(@RequestBody Registration registration) throws MessagingException {
+    public ResponseEntity<Registration> register(@RequestBody Registration registration) throws Exception {
         Registration newUser = this.userService.registerUser(registration);
         return new ResponseEntity<>(newUser, HttpStatus.OK);
     }
@@ -142,7 +142,7 @@ public class AdminController {
      * @return ResponseEntity containing success message, and Http Status
      */
     @PutMapping("/students/update")
-    public ResponseEntity<String> updateStudent(@RequestBody UpdateStudentRequest request) throws MessagingException {
+    public ResponseEntity<String> updateStudent(@RequestBody UpdateStudentRequest request) throws Exception {
         accountsService.updateStudentCredentials(request.getStudentNumber(), request.getNewPassword(),request.getIsLocked());
         return new ResponseEntity<>("Student Credential Successfully Updated", HttpStatus.OK);
     }

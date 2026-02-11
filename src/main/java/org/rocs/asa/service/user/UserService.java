@@ -33,7 +33,7 @@ public interface UserService{
      * @param registration is the data transfer object of the user that contains the user credential
      * @return User
      */
-    Registration registerUser(Registration registration) throws MessagingException;
+    Registration registerUser(Registration registration) throws Exception;
 
     /**
      * Initiates password reset process
@@ -42,7 +42,7 @@ public interface UserService{
      * @param username user's username
      * @param newPassword the new password to set after verification
      */
-    void initiatePasswordReset(String username, String newPassword) throws MessagingException;
+    void initiatePasswordReset(String username, String newPassword) throws Exception;
 
     /**
      * Verifies token and completes password reset

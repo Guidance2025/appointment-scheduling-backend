@@ -18,7 +18,7 @@ public interface AccountsService {
 
     void softDeleteEmployeeAccount(Long id);
 
-    void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) throws MessagingException;
+    void updateStudentCredentials(String studentNumber, String newPassword, Boolean isLocked) throws Exception;
 
     void updateGuidanceEmployeeCredentials(Long id , String email, Boolean isLocked);
 }

@@ -126,7 +126,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public Registration registerUser(Registration registration) throws MessagingException {
+    public Registration registerUser(Registration registration) throws Exception {
         if (registration.getStudent() != null) {
             return registerStudent(registration);
         } else if (registration.getGuidanceStaff() != null) {
@@ -136,7 +136,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Transactional
-    private Registration registerStudent(Registration registration) throws MessagingException {
+    private Registration registerStudent(Registration registration) throws Exception {
         if (registration == null || registration.getStudent() == null)
             throw new IllegalArgumentException("Registration and Student are required");
 
@@ -257,7 +257,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Transactional
-    private Registration registerGuidanceStaff(Registration registration) throws MessagingException {
+    private Registration registerGuidanceStaff(Registration registration) throws Exception {
         if (registration == null || registration.getGuidanceStaff() == null)
             throw new IllegalArgumentException("Registration and GuidanceStaff are required");
 
@@ -316,7 +316,7 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     }
 
     @Override
-    public void initiatePasswordReset(String username, String newPassword) throws MessagingException {
+    public void initiatePasswordReset(String username, String newPassword) throws Exception {
         String normalizedUsername = normalizeUsername(username);
         User existingUser = findUserByUsername(normalizedUsername);
         if (existingUser == null) throw new UserNotFoundException("User not found");
