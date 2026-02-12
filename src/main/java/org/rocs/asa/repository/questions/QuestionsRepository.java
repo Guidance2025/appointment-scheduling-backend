@@ -13,35 +13,29 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
 
     @Query(value = """
-    SELECT q.* FROM questions q
-    WHERE q.category_id = (
-        SELECT c.id FROM categories c WHERE c.category_name = :categoryName
-    )
+    SELECT q.* FROM tbl_questions q
+    WHERE q.category_id = (SELECT c.id FROM tbl_categories c WHERE c.category_name = ?)
     AND q.id NOT IN (
-        SELECT ei.question_id 
-        FROM exit_interview ei 
-        WHERE ei.student_id = :studentId
+        SELECT ei.question_id FROM tbl_exit_interview ei WHERE ei.student_id = ?
     )
     AND (
-        q.id::TEXT IN (
-            SELECT SUBSTRING(n.action_type FROM POSITION('EXIT_INTERVIEW_NEW_QUESTION_' IN n.action_type) + 29)
-            FROM notifications n
-            WHERE n.user_id = :userId
+        q.id IN (
+            SELECT CAST(
+                SUBSTRING(n.action_type, LENGTH('EXIT_INTERVIEW_NEW_QUESTION_') + 1)
+                AS INTEGER
+            )
+            FROM tbl_notifications n
+            WHERE n.user_id = ?
             AND n.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
-            AND SUBSTRING(n.action_type FROM POSITION('EXIT_INTERVIEW_NEW_QUESTION_' IN n.action_type) + 29) ~ '^[0-9]+$'
         )
         OR NOT EXISTS (
-            SELECT 1 FROM notifications n2
-            WHERE n2.user_id = :userId
+            SELECT 1 FROM tbl_notifications n2
+            WHERE n2.user_id = ?
             AND n2.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
         )
     )
     """, nativeQuery = true)
-    List<Questions> findUnansweredExitInterviewByStudentId(
-            @Param("studentId") Long studentId,
-            @Param("categoryName") String categoryName,
-            @Param("userId") String userId
-    );
+    List<Questions> findUnansweredExitInterviewByStudentId(String categoryName, Long studentId, Long userId);
     @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT sa.question.id FROM SelfAssessment sa WHERE sa.student.id = :studentId)")
     List<Questions> findUnansweredSelfAssessmentByStudentId(@Param("studentId") Long studentId, @Param("categoryName") String categoryName);
 //    @Query("SELECT q FROM Questions q WHERE q.id NOT IN " +
