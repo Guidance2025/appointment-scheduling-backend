@@ -13,28 +13,30 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
 
     @Query(value = """
-        SELECT q.* FROM questions q
-        WHERE q.category_id = (SELECT c.id FROM categories c WHERE c.category_name = :categoryName)
-        AND q.id NOT IN (
-            SELECT ei.question_id FROM exit_interview ei WHERE ei.student_id = :studentId
+    SELECT q.* FROM questions q
+    WHERE q.category_id = (
+        SELECT c.id FROM categories c WHERE c.category_name = :categoryName
+    )
+    AND q.id NOT IN (
+        SELECT ei.question_id 
+        FROM exit_interview ei 
+        WHERE ei.student_id = :studentId
+    )
+    AND (
+        q.id::TEXT IN (
+            SELECT SUBSTRING(n.action_type FROM POSITION('EXIT_INTERVIEW_NEW_QUESTION_' IN n.action_type) + 29)
+            FROM notifications n
+            WHERE n.user_id = :userId
+            AND n.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
+            AND SUBSTRING(n.action_type FROM POSITION('EXIT_INTERVIEW_NEW_QUESTION_' IN n.action_type) + 29) ~ '^[0-9]+$'
         )
-        AND (
-            q.id IN (
-                SELECT CAST(
-                    SUBSTRING(n.action_type, LENGTH('EXIT_INTERVIEW_NEW_QUESTION_') + 1)
-                    AS UNSIGNED
-                )
-                FROM notifications n
-                WHERE n.user_id = :userId
-                AND n.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
-            )
-            OR NOT EXISTS (
-                SELECT 1 FROM notifications n2
-                WHERE n2.user_id = :userId
-                AND n2.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
-            )
+        OR NOT EXISTS (
+            SELECT 1 FROM notifications n2
+            WHERE n2.user_id = :userId
+            AND n2.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
         )
-        """, nativeQuery = true)
+    )
+    """, nativeQuery = true)
     List<Questions> findUnansweredExitInterviewByStudentId(
             @Param("studentId") Long studentId,
             @Param("categoryName") String categoryName,
