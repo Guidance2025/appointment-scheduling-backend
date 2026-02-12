@@ -173,7 +173,7 @@ public class UserController {
      * @return success message
      */
     @PostMapping("/password-reset/initiate")
-    public ResponseEntity<Map<String, String>> initiatePasswordReset(@RequestBody PasswordResetRequest request) throws MessagingException {
+    public ResponseEntity<Map<String, String>> initiatePasswordReset(@RequestBody PasswordResetRequest request) throws Exception {
         this.userService.initiatePasswordReset(request.getUsername(), request.getNewPassword());
         Map<String, String> response = Map.of(
                 "message", "Password reset email sent successfully. Please check your inbox."
