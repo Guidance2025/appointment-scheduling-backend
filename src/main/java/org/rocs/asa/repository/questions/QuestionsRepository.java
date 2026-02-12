@@ -24,12 +24,12 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
                 AS INTEGER
             )
             FROM tbl_notification n
-            WHERE n.user_id = :userId
+            WHERE n.user_id = CAST(:userId AS BIGINT)
             AND n.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
         )
         OR NOT EXISTS (
             SELECT 1 FROM tbl_notification n2
-            WHERE n2.user_id = :userId
+            WHERE n2.user_id = CAST(:userId AS BIGINT)
             AND n2.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
         )
     )
