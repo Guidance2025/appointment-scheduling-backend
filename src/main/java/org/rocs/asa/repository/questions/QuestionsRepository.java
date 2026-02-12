@@ -35,7 +35,7 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
         )
     )
     """, nativeQuery = true)
-    List<Questions> findUnansweredExitInterviewByStudentId(String categoryName, Long studentId, Long userId);
+    List<Questions> findUnansweredExitInterviewByStudentId (Long studentId, String categoryName,String userId);
     @Query("SELECT q FROM Questions q WHERE q.category.categoryName = :categoryName AND q.id NOT IN (SELECT sa.question.id FROM SelfAssessment sa WHERE sa.student.id = :studentId)")
     List<Questions> findUnansweredSelfAssessmentByStudentId(@Param("studentId") Long studentId, @Param("categoryName") String categoryName);
 //    @Query("SELECT q FROM Questions q WHERE q.id NOT IN " +
