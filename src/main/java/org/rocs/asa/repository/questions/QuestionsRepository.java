@@ -13,7 +13,7 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
     @Query(value = """
     SELECT q.* FROM tbl_questions q
-    WHERE q.category_id = (SELECT c.id FROM tbl_category c WHERE c.category_name = :categoryName)
+    WHERE q.category_id = (SELECT c.category_id FROM tbl_category c WHERE c.category_name = :categoryName)
     AND q.id NOT IN (
         SELECT ei.question_id FROM tbl_exit_interview ei WHERE ei.student_id = :studentId
     )
