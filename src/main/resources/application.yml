@@ -69,17 +69,19 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require&prepareThreshold=0
+    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require&prepareThreshold=0&connectTimeout=30
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 3
       minimum-idle: 1
-      connection-timeout: 60000
+      connection-timeout: 30000  # Reduced from 60000
       idle-timeout: 300000
       max-lifetime: 600000
       keepalive-time: 60000
+      leak-detection-threshold: 60000
+      connection-test-query: SELECT 1
   jpa:
     show-sql: false
     hibernate:
