@@ -14,11 +14,11 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     @Query(value = """
     SELECT q.* FROM tbl_questions q
     WHERE q.category_id = (SELECT c.category_id FROM tbl_category c WHERE c.category_name = :categoryName)
-    AND q.id NOT IN (
+    AND q.question_id NOT IN (
         SELECT ei.question_id FROM tbl_exit_interview ei WHERE ei.student_id = :studentId
     )
     AND (
-        q.id IN (
+        q.question_id IN (
             SELECT CAST(
                 SUBSTRING(n.action_type, LENGTH('EXIT_INTERVIEW_NEW_QUESTION_') + 1)
                 AS INTEGER
