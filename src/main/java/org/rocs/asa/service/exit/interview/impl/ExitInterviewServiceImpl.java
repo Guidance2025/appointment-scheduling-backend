@@ -191,8 +191,8 @@ public class ExitInterviewServiceImpl implements ExitInterviewService {
         String userId = student.getUser().getUserId();
 
         List<Questions> unansweredQuestions = questionsRepository.findUnansweredExitInterviewByStudentId(
-                student.getId(),
                 "Exit Interview",
+                student.getId(),
                 userId
         );
 
