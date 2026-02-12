@@ -13,7 +13,7 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
     List<Questions> findByCategoryName(@Param("categoryName") String categoryName);
     @Query(value = """
     SELECT q.* FROM tbl_questions q
-    WHERE q.category_id = (SELECT c.id FROM tbl_categories c WHERE c.category_name = :categoryName)
+    WHERE q.category_id = (SELECT c.id FROM tbl_category c WHERE c.category_name = :categoryName)
     AND q.id NOT IN (
         SELECT ei.question_id FROM tbl_exit_interview ei WHERE ei.student_id = :studentId
     )
@@ -23,12 +23,12 @@ public interface QuestionsRepository extends JpaRepository<Questions,Long> {
                 SUBSTRING(n.action_type, LENGTH('EXIT_INTERVIEW_NEW_QUESTION_') + 1)
                 AS INTEGER
             )
-            FROM tbl_notifications n
+            FROM tbl_notification n
             WHERE n.user_id = :userId
             AND n.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
         )
         OR NOT EXISTS (
-            SELECT 1 FROM tbl_notifications n2
+            SELECT 1 FROM tbl_notification n2
             WHERE n2.user_id = :userId
             AND n2.action_type LIKE 'EXIT_INTERVIEW_NEW_QUESTION_%'
         )
