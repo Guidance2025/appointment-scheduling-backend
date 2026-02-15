@@ -26,5 +26,7 @@ public interface SectionRepository extends JpaRepository<Section,Long> {
      */
     Section findBySectionNameAndClusterHead(String sectionName, String clusterHead);
 
+    @Query("SELECT DISTINCT s.organization FROM Section s")
+    List<String> findAllOrganization();
 
 }
