@@ -26,8 +26,8 @@ public class AppointmentStatusService {
     private static final Logger LOGGER = LoggerFactory.getLogger(AppointmentStatusService.class);
     private static final int REMINDER_MINUTES_BEFORE = 25;
     private static final int REMINDER_WINDOW_MINUTES = 5;
-    private static final int PENDING_EXPIRY_MINUTES = 2;
-    private static final int RESCHEDULE_EXPIRY_MINUTES = 5;
+    private static final int PENDING_EXPIRY_MINUTES = 4320;
+    private static final int RESCHEDULE_EXPIRY_MINUTES = 4320;
 
     private final AppointmentRepository appointmentRepository;
     private final NotificationRepository notificationRepository;
