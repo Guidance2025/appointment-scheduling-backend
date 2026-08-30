@@ -24,7 +24,7 @@ brevo:
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
-  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  frontend-url: http://localhost:5173
   endpoints:
     password-reset-verify: "/user/password-reset/verify"
 
@@ -44,50 +44,5 @@ admin:
 appointment:
   max-pending-per-student: 1
 
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-  datasource:
-    url: jdbc:postgresql://db:5432/appointment_db
-    username: postgres
-    password: postgres123
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    show-sql: true
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
 
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-  datasource:
-    url: jdbc:postgresql://aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require&prepareThreshold=0
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 3
-      minimum-idle: 1
-      connection-timeout: 60000
-      idle-timeout: 300000
-      max-lifetime: 600000
-      keepalive-time: 60000
-  jpa:
-    show-sql: false
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: false
-        jdbc:
-          lob:
-            non_contextual_creation: true
+

@@ -1,31 +1,4 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=dev
-      - JWT_SECRET=thebigbrownfoxjumpsoverthelazydog
-      - DB_URL=jdbc:postgresql://db:5432/appointment_db
-      - DB_USERNAME=postgres
-      - DB_PASSWORD=postgres123
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=123123
-      - ADMIN_EMAIL=admin@guidance.edu
-      - APP_BASE_URL=http://localhost:8080
-      - FRONTEND_URL=http://localhost:5173
-      - FIREBASE_PROJECT_ID=appointment-notification-cc54d
-      - BREVO_API_KEY=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
-      - BREVO_FROM_EMAIL=your-verified-sender-email@yourdomain.com
-      - BREVO_FROM_NAME=Gabay System
-    depends_on:
-      db:
-        condition: service_healthy
-    networks:
-      - app-network
-
   db:
     image: postgres:15-alpine
     environment:

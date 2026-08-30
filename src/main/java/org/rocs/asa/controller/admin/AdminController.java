@@ -4,11 +4,13 @@ import jakarta.mail.MessagingException;
 import org.rocs.asa.domain.account.dto.GuidanceStaffDto;
 import org.rocs.asa.domain.account.dto.StudentAccountDto;
 import org.rocs.asa.domain.account.profile.request.AdminProfileDto;
+import org.rocs.asa.domain.section.Section;
 import org.rocs.asa.domain.student.information.response.StudentDetailsResponse;
 import org.rocs.asa.domain.guidance.staff.request.UpdateGuidanceStaffRequest;
 import org.rocs.asa.domain.registration.Registration;
 import org.rocs.asa.domain.student.request.UpdateStudentRequest;
 import org.rocs.asa.domain.user.User;
+import org.rocs.asa.repository.section.SectionRepository;
 import org.rocs.asa.service.accounts.AccountsService;
 import org.rocs.asa.service.profile.admin.AdminProfileService;
 import org.rocs.asa.service.student.inforamation.StudentInformationService;
@@ -155,5 +157,11 @@ public class AdminController {
     public ResponseEntity<String> updateGuidanceStaff(@RequestBody UpdateGuidanceStaffRequest request) {
         accountsService.updateGuidanceEmployeeCredentials(request.getId(),request.getEmail(),request.getIsLocked());
         return new ResponseEntity<>("Guidance Staff Credentials Successfully Updated",HttpStatus.OK);
+    }
+
+    @GetMapping("/retrieve-all/organization")
+    public ResponseEntity<List<String>> getAllOrganization(){
+        List<String> listOfOrganization = studentInformationService.getAllOrganization();
+        return new ResponseEntity<>(listOfOrganization , HttpStatus.OK);
     }
 }

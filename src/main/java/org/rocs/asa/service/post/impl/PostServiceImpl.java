@@ -377,15 +377,14 @@ public class PostServiceImpl implements PostService {
         String sectionName = student.getSection() != null ? student.getSection().getSectionName() : null;
 
         String loginIdSql = "SELECT login_id FROM tbl_login WHERE user_id = ?";
-        String loginId;
+        Long loginId;
         try {
-            loginId = jdbcTemplate.queryForObject(loginIdSql, String.class, userId);
+            loginId = jdbcTemplate.queryForObject(loginIdSql, Long.class, userId);
         } catch (Exception e) {
             LOGGER.error("Could not find login_id for user_id: {}", userId);
             return Collections.emptyList();
         }
 
-        // IMPROVED: More specific notification matching using message content
         String sql = "SELECT DISTINCT p.post_id, p.post_content, p.posted_date, c.category_name, " +
                 "       s.section_name, s.organization, " +
                 "       TRIM(COALESCE(per.first_name, '') || ' ' || COALESCE(per.last_name, '')) AS posted_by " +
@@ -396,7 +395,7 @@ public class PostServiceImpl implements PostService {
                 "LEFT JOIN tbl_person per ON gs.person_id = per.id " +
                 "INNER JOIN tbl_notification n ON n.action_type = 'POST_UPDATE' " +
                 "   AND n.user_id = ? " +
-                "   AND ABS(EXTRACT(EPOCH FROM (p.posted_date - n.created_at))) < 10 " + // Within 10 seconds
+                "   AND ABS(EXTRACT(EPOCH FROM (p.posted_date - n.created_at))) < 10 " +
                 "WHERE UPPER(TRIM(c.category_name)) <> 'QUOTE' " +
                 "ORDER BY p.posted_date DESC " +
                 "LIMIT ?";
@@ -408,7 +407,6 @@ public class PostServiceImpl implements PostService {
 
         return posts;
     }
-
     @Override
     public List<Map<String, Object>> getPostsBySection(String sectionName, int limit) {
         if (sectionName == null || sectionName.trim().isEmpty()) {
